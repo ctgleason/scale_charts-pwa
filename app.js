@@ -1,8 +1,15 @@
 function getChordRenderer() {
-  const lib = window.svguitar || globalThis.svguitar || window.SVGuitar;
+  const candidates = [
+    window.svguitar,
+    globalThis.svguitar,
+    window.SVGuitar,
+    globalThis.SVGuitar,
+  ];
 
-  if (lib && typeof lib.SVGuitarChord === 'function') {
-    return lib.SVGuitarChord;
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate.SVGuitarChord === 'function') {
+      return candidate.SVGuitarChord;
+    }
   }
 
   if (typeof window.SVGuitarChord === 'function') {
@@ -10,6 +17,59 @@ function getChordRenderer() {
   }
 
   throw new Error('SVGuitar library failed to load.');
+}
+
+function setDiagnostics(text, isError = false) {
+  let node = document.getElementById('debug-status');
+  if (!node) {
+    node = document.createElement('pre');
+    node.id = 'debug-status';
+    node.style.whiteSpace = 'pre-wrap';
+    node.style.wordBreak = 'break-word';
+    node.style.fontSize = '0.8rem';
+    node.style.padding = '0.75rem';
+    node.style.border = '1px solid #374151';
+    node.style.borderRadius = '0.5rem';
+    node.style.margin = '1rem 0 0';
+    node.style.background = '#0b1220';
+    node.style.color = '#cbd5e1';
+    const shell = document.querySelector('.app-shell') || document.body;
+    shell.appendChild(node);
+  }
+
+  node.style.borderColor = isError ? '#7f1d1d' : '#374151';
+  node.style.color = isError ? '#fecaca' : '#cbd5e1';
+  node.textContent = text;
+}
+
+function ensureSvguitarScriptLoaded() {
+  return new Promise((resolve, reject) => {
+    try {
+      getChordRenderer();
+      resolve();
+      return;
+    } catch {
+    }
+
+    const existingScript = Array.from(document.scripts).find((script) =>
+      script.src.includes('vendor/svguitar.umd.js')
+    );
+
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Failed loading existing svguitar script.')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = './vendor/svguitar.umd.js';
+    script.async = false;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed loading ./vendor/svguitar.umd.js')); 
+    document.head.appendChild(script);
+  });
 }
 
 function waitForChordRenderer({ timeoutMs = 4000, pollMs = 100 } = {}) {
@@ -108,11 +168,36 @@ function registerServiceWorker() {
 
 async function renderCharts() {
   try {
+    await ensureSvguitarScriptLoaded();
     const SVGuitarChord = await waitForChordRenderer();
+
+    const chordContainer = document.getElementById('chord-chart');
+    const segmentContainer = document.getElementById('segment-chart');
+    if (!chordContainer || !segmentContainer) {
+      throw new Error('Chart containers not found in DOM.');
+    }
+
+    chordContainer.innerHTML = '';
+    segmentContainer.innerHTML = '';
+
     renderChordExample(SVGuitarChord);
     renderSegmentExample(SVGuitarChord);
+
+    const svgCount = document.querySelectorAll('.chart svg').length;
+    setDiagnostics(
+      `SVGuitar loaded: yes\nRenderer: ${SVGuitarChord.name || 'anonymous'}\nRendered SVG nodes: ${svgCount}\nLocation: ${window.location.href}`,
+      svgCount === 0
+    );
+
+    if (svgCount === 0) {
+      throw new Error('Render completed but no SVG nodes were produced.');
+    }
   } catch (error) {
-    console.error(error);
+    console.error('Render error:', error);
+    setDiagnostics(
+      `Render error: ${error?.message || String(error)}\nwindow.svguitar: ${!!window.svguitar}\nwindow.SVGuitar: ${!!window.SVGuitar}\nwindow.SVGuitarChord: ${typeof window.SVGuitarChord}`,
+      true
+    );
   }
 }
 
@@ -121,6 +206,7 @@ function logSVGuitarGlobals() {
   console.log('[SVGuitar diagnostic] window.svguitar:', window.svguitar);
   console.log('[SVGuitar diagnostic] window.SVGuitar:', window.SVGuitar);
   console.log('[SVGuitar diagnostic] window.SVGuitarChord:', window.SVGuitarChord);
+  console.log('[SVGuitar diagnostic] script src list:', Array.from(document.scripts).map((s) => s.src));
 }
 
 if (document.readyState === 'loading') {
