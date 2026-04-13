@@ -108,6 +108,7 @@ function renderChordExample(SVGuitarChord) {
     })
     .chord({
       title: 'A Minor',
+      barres: [],
       fingers: [
         [1, 'x'],
         [2, 0],
@@ -134,6 +135,7 @@ function renderSegmentExample(SVGuitarChord) {
     })
     .chord({
       title: 'A Minor Pentatonic (5th Pos.)',
+      barres: [],
       fingers: [
         [1, 1, 'A'],
         [1, 4, 'C'],
