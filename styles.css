@@ -35,8 +35,8 @@ header p {
 }
 
 .panel {
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   border-radius: 0.75rem;
   padding: 1rem;
 }
@@ -44,12 +44,14 @@ header p {
 .panel h2 {
   margin-top: 0;
   font-size: 1.05rem;
-  color: #f1f5f9;
+  color: #0f172a;
 }
 
 .chart {
   width: 100%;
   overflow-x: auto;
+  background: #ffffff;
+  border-radius: 0.5rem;
 }
 
 .chart svg {
