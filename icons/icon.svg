@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <!-- Guitar neck / fretboard -->
+  <rect x="221" y="60" width="70" height="392" rx="8" fill="#1e293b" stroke="#334155" stroke-width="4"/>
+  <!-- Frets -->
+  <rect x="221" y="150" width="70" height="6" rx="2" fill="#94a3b8"/>
+  <rect x="221" y="240" width="70" height="6" rx="2" fill="#94a3b8"/>
+  <rect x="221" y="330" width="70" height="6" rx="2" fill="#94a3b8"/>
+  <!-- Strings (3 of 6 for icon clarity) -->
+  <line x1="240" y1="60" x2="240" y2="452" stroke="#64748b" stroke-width="3"/>
+  <line x1="256" y1="60" x2="256" y2="452" stroke="#64748b" stroke-width="3"/>
+  <line x1="272" y1="60" x2="272" y2="452" stroke="#64748b" stroke-width="3"/>
+  <!-- Finger dots -->
+  <circle cx="240" cy="195" r="14" fill="#3b82f6"/>
+  <circle cx="272" cy="285" r="14" fill="#3b82f6"/>
+  <circle cx="256" cy="375" r="14" fill="#3b82f6"/>
+</svg>

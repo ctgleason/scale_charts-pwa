@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Scale Charts" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Scale Charts PWA</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header>
+        <h1>Scale Charts</h1>
+        <p>Starter PWA for guitar chord and scale diagrams</p>
+      </header>
+
+      <section class="panel">
+        <h2>Example Chord Fingering</h2>
+        <div id="chord-chart" class="chart"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Example Fretboard Segment</h2>
+        <div id="segment-chart" class="chart"></div>
+      </section>
+    </main>
+
+    <script src="https://omnibrain.github.io/svguitar/js/svguitar.umd.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
