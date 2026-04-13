@@ -16,17 +16,58 @@
     <main class="app-shell">
       <header>
         <h1>Scale Charts</h1>
-        <p>Starter PWA for guitar chord and scale diagrams</p>
+        <p>Choose a chord and CAGED voicing</p>
       </header>
 
       <section class="panel">
-        <h2>Example Chord Fingering</h2>
-        <div id="chord-chart" class="chart"></div>
+        <h2>Chord Options</h2>
+        <div class="controls-grid">
+          <label class="control-field">
+            <span>Root</span>
+            <select id="root-note">
+              <option>A</option>
+              <option>B</option>
+              <option>C</option>
+              <option>D</option>
+              <option>E</option>
+              <option>F</option>
+              <option>G</option>
+            </select>
+          </label>
+
+          <label class="control-field">
+            <span>Accidental</span>
+            <select id="accidental">
+              <option value="">Natural</option>
+              <option value="#">Sharp (#)</option>
+              <option value="b">Flat (b)</option>
+            </select>
+          </label>
+
+          <label class="control-field">
+            <span>Quality</span>
+            <select id="quality">
+              <option value="major">Major</option>
+              <option value="minor">Minor</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="caged-row" aria-label="CAGED voicing selector">
+          <span class="caged-label">Voicing</span>
+          <div id="caged-buttons" class="caged-buttons" role="group" aria-label="CAGED voicing">
+            <button type="button" class="caged-btn is-active" data-voicing="C">C</button>
+            <button type="button" class="caged-btn" data-voicing="A">A</button>
+            <button type="button" class="caged-btn" data-voicing="G">G</button>
+            <button type="button" class="caged-btn" data-voicing="E">E</button>
+            <button type="button" class="caged-btn" data-voicing="D">D</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
-        <h2>Example Fretboard Segment</h2>
-        <div id="segment-chart" class="chart"></div>
+        <h2 id="selection-title">A Major · C voicing</h2>
+        <div id="main-chart" class="chart"></div>
       </section>
     </main>
 

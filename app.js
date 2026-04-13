@@ -95,8 +95,31 @@ function waitForChordRenderer({ timeoutMs = 4000, pollMs = 100 } = {}) {
   });
 }
 
+const appState = {
+  root: 'A',
+  accidental: '',
+  quality: 'major',
+  caged: 'C',
+};
+
+function getQualityLabel(quality) {
+  return quality === 'minor' ? 'Minor' : 'Major';
+}
+
+function getSelectionLabel() {
+  const note = `${appState.root}${appState.accidental}`;
+  return `${note} ${getQualityLabel(appState.quality)} · ${appState.caged} voicing`;
+}
+
+function updateSelectionTitle() {
+  const title = document.getElementById('selection-title');
+  if (title) {
+    title.textContent = getSelectionLabel();
+  }
+}
+
 function renderChordExample(SVGuitarChord) {
-  const chart = new SVGuitarChord('#chord-chart');
+  const chart = new SVGuitarChord('#main-chart');
 
   chart
     .configure({
@@ -107,7 +130,7 @@ function renderChordExample(SVGuitarChord) {
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
     })
     .chord({
-      title: 'A Minor',
+      title: getSelectionLabel(),
       barres: [],
       fingers: [
         [1, 'x'],
@@ -121,37 +144,52 @@ function renderChordExample(SVGuitarChord) {
     .draw();
 }
 
-function renderSegmentExample(SVGuitarChord) {
-  const chart = new SVGuitarChord('#segment-chart');
+function setupControls() {
+  const root = document.getElementById('root-note');
+  const accidental = document.getElementById('accidental');
+  const quality = document.getElementById('quality');
+  const cagedButtons = document.getElementById('caged-buttons');
 
-  chart
-    .configure({
-      style: 'normal',
-      strings: 6,
-      frets: 5,
-      position: 5,
-      tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
-      noPosition: false,
-    })
-    .chord({
-      title: 'A Minor Pentatonic (5th Pos.)',
-      barres: [],
-      fingers: [
-        [1, 1, 'A'],
-        [1, 4, 'C'],
-        [2, 1, 'E'],
-        [2, 4, 'G'],
-        [3, 1, 'A'],
-        [3, 3, 'B'],
-        [4, 1, 'D'],
-        [4, 3, 'E'],
-        [5, 1, 'G'],
-        [5, 3, 'A'],
-        [6, 1, 'C'],
-        [6, 4, 'D'],
-      ],
-    })
-    .draw();
+  if (!root || !accidental || !quality || !cagedButtons) {
+    return;
+  }
+
+  root.value = appState.root;
+  accidental.value = appState.accidental;
+  quality.value = appState.quality;
+
+  root.addEventListener('change', () => {
+    appState.root = root.value;
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  accidental.addEventListener('change', () => {
+    appState.accidental = accidental.value;
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  quality.addEventListener('change', () => {
+    appState.quality = quality.value;
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  cagedButtons.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-voicing]');
+    if (!button) {
+      return;
+    }
+
+    appState.caged = button.dataset.voicing;
+    Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
+      node.classList.toggle('is-active', node === button);
+    });
+
+    updateSelectionTitle();
+    renderCharts();
+  });
 }
 
 function registerServiceWorker() {
@@ -174,17 +212,14 @@ async function renderCharts() {
     await ensureSvguitarScriptLoaded();
     const SVGuitarChord = await waitForChordRenderer();
 
-    const chordContainer = document.getElementById('chord-chart');
-    const segmentContainer = document.getElementById('segment-chart');
-    if (!chordContainer || !segmentContainer) {
-      throw new Error('Chart containers not found in DOM.');
+    const chartContainer = document.getElementById('main-chart');
+    if (!chartContainer) {
+      throw new Error('Chart container not found in DOM.');
     }
 
-    chordContainer.innerHTML = '';
-    segmentContainer.innerHTML = '';
+    chartContainer.innerHTML = '';
 
     renderChordExample(SVGuitarChord);
-    renderSegmentExample(SVGuitarChord);
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
@@ -214,10 +249,14 @@ function logSVGuitarGlobals() {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    setupControls();
+    updateSelectionTitle();
     logSVGuitarGlobals();
     renderCharts();
   });
 } else {
+  setupControls();
+  updateSelectionTitle();
   logSVGuitarGlobals();
   renderCharts();
 }
