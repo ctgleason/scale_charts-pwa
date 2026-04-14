@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.14+f287f68';
+const APP_VERSION = 'v2026.04.14+fix-chord-overlay';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -406,11 +406,6 @@ function buildDegreeLabelMap(scaleIntervals) {
   return labelMap;
 }
 
-function buildChordIntervalSet(quality) {
-  const triad = quality === 'minor' ? [0, 3, 7] : [0, 4, 7];
-  return new Set(triad.map((interval) => normalizeSemitone(interval)));
-}
-
 function getOpenStringSemitoneByTemplateIndex(index) {
   const lowToHighOpen = [4, 9, 2, 7, 11, 4];
   return lowToHighOpen[index];
@@ -446,11 +441,26 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
 
   const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
   const pentIntervals = getPentatonicIntervalsForQuality(appState.quality);
-  const chordIntervals = buildChordIntervalSet(appState.quality);
 
   const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
   const pentSet = new Set(pentIntervals.map((interval) => normalizeSemitone(interval)));
   const degreeLabels = buildDegreeLabelMap(scaleIntervals);
+  const voicingPositionSet = new Set();
+
+  for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
+    const absoluteFret = transposed.absoluteFrets[stringTemplateIndex];
+    if (typeof absoluteFret !== 'number') {
+      continue;
+    }
+
+    const displayFret = absoluteFret - transposed.position + 1;
+    if (displayFret < 1 || displayFret > transposed.frets) {
+      continue;
+    }
+
+    const stringIndex = 6 - stringTemplateIndex;
+    voicingPositionSet.add(`${stringIndex}:${displayFret}`);
+  }
 
   const markerMap = new Map();
 
@@ -479,21 +489,22 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
       const noteSemitone = normalizeSemitone(openSemitone + absoluteFret);
       const intervalFromRoot = normalizeSemitone(noteSemitone - rootSemitone);
 
-      const isChord = chordIntervals.has(intervalFromRoot);
+      const positionKey = `${stringIndex}:${displayFret}`;
+      const isVoicingPosition = voicingPositionSet.has(positionKey);
       const isPent = pentSet.has(intervalFromRoot);
       const isScale = scaleSet.has(intervalFromRoot);
 
-      if (showChord && isChord && chordOverlay) {
+      if (showChord && isVoicingPosition && chordOverlay) {
         addMarker(stringIndex, displayFret, intervalFromRoot, chordOverlay.color, 1);
         continue;
       }
 
-      if (showPent && isPent && !isChord && pentOverlay) {
+      if (showPent && isPent && pentOverlay) {
         addMarker(stringIndex, displayFret, intervalFromRoot, pentOverlay.color, 2);
         continue;
       }
 
-      if (showScale && isScale && !isPent && !isChord && scaleOverlay) {
+      if (showScale && isScale && !isPent && scaleOverlay) {
         addMarker(stringIndex, displayFret, intervalFromRoot, scaleOverlay.color, 3);
       }
     }
