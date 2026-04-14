@@ -335,7 +335,8 @@ function transposeVoicing(pattern, targetSemitone) {
   });
 
   const fretted = absoluteFrets.filter((fret) => typeof fret === 'number' && fret > 0);
-  const position = fretted.length > 0 ? Math.min(...fretted) : 1;
+  const hasOpenString = absoluteFrets.some((fret) => fret === 0);
+  const position = hasOpenString ? 1 : fretted.length > 0 ? Math.min(...fretted) : 1;
 
   const fingers = absoluteFrets.map((fret, index) => {
     const stringIndex = 6 - index;
@@ -352,9 +353,15 @@ function transposeVoicing(pattern, targetSemitone) {
     return [stringIndex, displayFret];
   });
 
+  const displayedFretted = fingers
+    .map((entry) => entry[1])
+    .filter((fret) => typeof fret === 'number' && fret > 0);
+  const frets = Math.max(5, displayedFretted.length > 0 ? Math.max(...displayedFretted) : 5);
+
   return {
     title: getSelectionLabel(),
     position,
+    frets,
     fingers,
     barres: Array.isArray(pattern.barres) ? pattern.barres : [],
   };
@@ -375,7 +382,7 @@ function renderChordFromTemplate(SVGuitarChord) {
     .configure({
       style: 'normal',
       strings: 6,
-      frets: 5,
+      frets: transposed.frets,
       position: transposed.position,
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
     })
