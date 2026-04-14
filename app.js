@@ -19,6 +19,8 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
+const APP_VERSION = 'v2026.04.14+f287f68';
+
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
   if (!node) {
@@ -166,6 +168,15 @@ function updateSelectionTitle() {
   if (title) {
     title.textContent = getSelectionLabel();
   }
+}
+
+function updateVersionLabel() {
+  const node = document.getElementById('app-version');
+  if (!node) {
+    return;
+  }
+
+  node.textContent = `Version ${APP_VERSION}`;
 }
 
 async function loadTemplates() {
@@ -553,7 +564,7 @@ async function renderCharts() {
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
-      `SVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nChord: ${getChordSymbol()}\nTemplate: ${appState.templateId || 'none'}`,
+      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nChord: ${getChordSymbol()}\nTemplate: ${appState.templateId || 'none'}`,
       svgCount === 0
     );
 
@@ -646,6 +657,7 @@ function registerServiceWorker() {
 async function boot() {
   await loadTemplates();
   setupControls();
+  updateVersionLabel();
   populateTemplateSelector();
   populateOverlayToggles();
 
