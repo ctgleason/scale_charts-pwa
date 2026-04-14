@@ -348,7 +348,8 @@ function transposeVoicing(pattern, targetSemitone) {
       return [stringIndex, 0];
     }
 
-    return [stringIndex, fret];
+    const displayFret = fret - position + 1;
+    return [stringIndex, displayFret];
   });
 
   return {
