@@ -338,7 +338,7 @@ function transposeVoicing(pattern, targetSemitone) {
   const position = fretted.length > 0 ? Math.min(...fretted) : 1;
 
   const fingers = absoluteFrets.map((fret, index) => {
-    const stringIndex = index + 1;
+    const stringIndex = 6 - index;
 
     if (fret === 'x') {
       return [stringIndex, 'x'];
@@ -348,8 +348,7 @@ function transposeVoicing(pattern, targetSemitone) {
       return [stringIndex, 0];
     }
 
-    const displayFret = fret - position + 1;
-    return [stringIndex, displayFret];
+    return [stringIndex, fret];
   });
 
   return {
