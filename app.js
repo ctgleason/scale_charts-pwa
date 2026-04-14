@@ -102,13 +102,60 @@ const appState = {
   caged: 'C',
 };
 
+const NATURAL_NOTE_TO_SEMITONE = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
+
+const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+function normalizeSemitone(value) {
+  return ((value % 12) + 12) % 12;
+}
+
+function normalizeAccidental(value) {
+  return value === '#' || value === 'b' ? value : '';
+}
+
+function parseSelectedNote(state = appState) {
+  const naturalSemitone = NATURAL_NOTE_TO_SEMITONE[state.root];
+
+  if (typeof naturalSemitone !== 'number') {
+    throw new Error(`Invalid root note: ${state.root}`);
+  }
+
+  const accidental = normalizeAccidental(state.accidental);
+  const accidentalOffset = accidental === '#' ? 1 : accidental === 'b' ? -1 : 0;
+  const semitone = normalizeSemitone(naturalSemitone + accidentalOffset);
+  const preferredNames = accidental === 'b' ? FLAT_NOTE_NAMES : SHARP_NOTE_NAMES;
+
+  return {
+    inputName: `${state.root}${accidental}`,
+    semitone,
+    normalizedSharp: SHARP_NOTE_NAMES[semitone],
+    normalizedFlat: FLAT_NOTE_NAMES[semitone],
+    preferredName: preferredNames[semitone],
+  };
+}
+
 function getQualityLabel(quality) {
   return quality === 'minor' ? 'Minor' : 'Major';
 }
 
+function getChordSymbol() {
+  const note = parseSelectedNote();
+  const qualitySuffix = appState.quality === 'minor' ? 'm' : '';
+  return `${note.preferredName}${qualitySuffix}`;
+}
+
 function getSelectionLabel() {
-  const note = `${appState.root}${appState.accidental}`;
-  return `${note} ${getQualityLabel(appState.quality)} · ${appState.caged} voicing`;
+  return `${getChordSymbol()} (${getQualityLabel(appState.quality)}) · ${appState.caged} voicing`;
 }
 
 function updateSelectionTitle() {
@@ -165,7 +212,7 @@ function setupControls() {
   });
 
   accidental.addEventListener('change', () => {
-    appState.accidental = accidental.value;
+    appState.accidental = normalizeAccidental(accidental.value);
     updateSelectionTitle();
     renderCharts();
   });
@@ -222,8 +269,9 @@ async function renderCharts() {
     renderChordExample(SVGuitarChord);
 
     const svgCount = document.querySelectorAll('.chart svg').length;
+    const parsedNote = parseSelectedNote();
     setDiagnostics(
-      `SVGuitar loaded: yes\nRenderer: ${SVGuitarChord.name || 'anonymous'}\nRendered SVG nodes: ${svgCount}\nLocation: ${window.location.href}`,
+      `SVGuitar loaded: yes\nRenderer: ${SVGuitarChord.name || 'anonymous'}\nRendered SVG nodes: ${svgCount}\nSelected note: ${parsedNote.inputName} (pc ${parsedNote.semitone})\nPreferred name: ${parsedNote.preferredName}\nLocation: ${window.location.href}`,
       svgCount === 0
     );
 
