@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.14+fix-scale-pent-overlap';
+const APP_VERSION = 'v2026.04.14+sw-auto-reload';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -655,14 +655,20 @@ function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener('load', async () => {
+  // When a new SW takes control, reload so the page runs the latest assets.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+
+  (async () => {
     try {
       const registration = await navigator.serviceWorker.register('./sw.js');
+      // Immediately check for an updated SW rather than waiting for next visit.
       await registration.update();
     } catch (error) {
       console.error('Service worker registration failed:', error);
     }
-  });
+  })();
 }
 
 async function boot() {
