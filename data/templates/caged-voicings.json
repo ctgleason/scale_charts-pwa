@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "id": "voicing-major-c",
+      "label": "Major Triad",
+      "type": "voicing",
+      "quality": "major",
+      "caged": "C",
+      "referenceRoot": "C",
+      "relativeFrets": ["x", 3, 2, 0, 1, 0]
+    },
+    {
+      "id": "voicing-major-a",
+      "label": "Major Triad",
+      "type": "voicing",
+      "quality": "major",
+      "caged": "A",
+      "referenceRoot": "A",
+      "relativeFrets": ["x", 0, 2, 2, 2, 0]
+    },
+    {
+      "id": "voicing-major-g",
+      "label": "Major Triad",
+      "type": "voicing",
+      "quality": "major",
+      "caged": "G",
+      "referenceRoot": "G",
+      "relativeFrets": [3, 2, 0, 0, 0, 3]
+    },
+    {
+      "id": "voicing-major-e",
+      "label": "Major Triad",
+      "type": "voicing",
+      "quality": "major",
+      "caged": "E",
+      "referenceRoot": "E",
+      "relativeFrets": [0, 2, 2, 1, 0, 0]
+    },
+    {
+      "id": "voicing-major-d",
+      "label": "Major Triad",
+      "type": "voicing",
+      "quality": "major",
+      "caged": "D",
+      "referenceRoot": "D",
+      "relativeFrets": ["x", "x", 0, 2, 3, 2]
+    },
+    {
+      "id": "voicing-minor-c",
+      "label": "Minor Triad",
+      "type": "voicing",
+      "quality": "minor",
+      "caged": "C",
+      "referenceRoot": "C",
+      "relativeFrets": ["x", 3, 1, 0, 1, "x"]
+    },
+    {
+      "id": "voicing-minor-a",
+      "label": "Minor Triad",
+      "type": "voicing",
+      "quality": "minor",
+      "caged": "A",
+      "referenceRoot": "A",
+      "relativeFrets": ["x", 0, 2, 2, 1, 0]
+    },
+    {
+      "id": "voicing-minor-g",
+      "label": "Minor Triad",
+      "type": "voicing",
+      "quality": "minor",
+      "caged": "G",
+      "referenceRoot": "G",
+      "relativeFrets": [3, 1, 0, 0, "x", "x"]
+    },
+    {
+      "id": "voicing-minor-e",
+      "label": "Minor Triad",
+      "type": "voicing",
+      "quality": "minor",
+      "caged": "E",
+      "referenceRoot": "E",
+      "relativeFrets": [0, 2, 2, 0, 0, 0]
+    },
+    {
+      "id": "voicing-minor-d",
+      "label": "Minor Triad",
+      "type": "voicing",
+      "quality": "minor",
+      "caged": "D",
+      "referenceRoot": "D",
+      "relativeFrets": ["x", "x", 0, 2, 3, 1]
+    }
+  ]
+}

@@ -23,6 +23,11 @@
         <h2>Chord Options</h2>
         <div class="controls-grid">
           <label class="control-field">
+            <span>Template</span>
+            <select id="template-pattern"></select>
+          </label>
+
+          <label class="control-field">
             <span>Root</span>
             <select id="root-note">
               <option>A</option>
@@ -62,6 +67,11 @@
             <button type="button" class="caged-btn" data-voicing="E">E</button>
             <button type="button" class="caged-btn" data-voicing="D">D</button>
           </div>
+        </div>
+
+        <div class="overlay-row" aria-label="Overlay selector">
+          <span class="caged-label">Overlays</span>
+          <div id="overlay-options" class="overlay-options"></div>
         </div>
       </section>
 

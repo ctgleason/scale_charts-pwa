@@ -1,0 +1,6 @@
+{
+  "templateFiles": [
+    "./data/templates/caged-voicings.json",
+    "./data/templates/scale-overlays.json"
+  ]
+}

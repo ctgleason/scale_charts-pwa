@@ -101,6 +101,43 @@ header p {
   border-color: #0f172a;
 }
 
+.overlay-row {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.overlay-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.overlay-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.overlay-toggle input[type="checkbox"] {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: #0f172a;
+  cursor: pointer;
+}
+
+.overlay-toggle.is-active {
+  border-color: #0f172a;
+  background: #f1f5f9;
+}
+
 .chart {
   width: 100%;
   overflow-x: auto;

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "overlays": [
+    {
+      "id": "overlay-chord-tones",
+      "label": "Chord tones",
+      "color": "#c1121f",
+      "defaultEnabled": true
+    },
+    {
+      "id": "overlay-pentatonic",
+      "label": "Pentatonic",
+      "color": "#111111",
+      "defaultEnabled": true
+    },
+    {
+      "id": "overlay-diatonic",
+      "label": "Major/Minor scale",
+      "color": "#1d4ed8",
+      "defaultEnabled": false
+    }
+  ],
+  "patterns": [
+    {
+      "id": "scale-major",
+      "label": "Major Scale",
+      "type": "scale",
+      "quality": "major",
+      "intervals": [0, 2, 4, 5, 7, 9, 11]
+    },
+    {
+      "id": "scale-minor",
+      "label": "Natural Minor Scale",
+      "type": "scale",
+      "quality": "minor",
+      "intervals": [0, 2, 3, 5, 7, 8, 10]
+    }
+  ]
+}
