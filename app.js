@@ -362,9 +362,150 @@ function transposeVoicing(pattern, targetSemitone) {
     title: getSelectionLabel(),
     position,
     frets,
+    absoluteFrets,
     fingers,
     barres: Array.isArray(pattern.barres) ? pattern.barres : [],
   };
+}
+
+function getOverlayById(id) {
+  return catalog.overlays.find((overlay) => overlay.id === id) || null;
+}
+
+function getScaleIntervalsForQuality(quality) {
+  const match = catalog.scales.find((pattern) => pattern.quality === quality);
+  if (match && Array.isArray(match.intervals) && match.intervals.length > 0) {
+    return match.intervals;
+  }
+
+  return quality === 'minor'
+    ? [0, 2, 3, 5, 7, 8, 10]
+    : [0, 2, 4, 5, 7, 9, 11];
+}
+
+function getPentatonicIntervalsForQuality(quality) {
+  return quality === 'minor' ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
+}
+
+function buildDegreeLabelMap(scaleIntervals) {
+  const labelMap = new Map();
+  scaleIntervals.forEach((interval, index) => {
+    labelMap.set(normalizeSemitone(interval), String(index + 1));
+  });
+  return labelMap;
+}
+
+function buildChordIntervalSet(quality) {
+  const triad = quality === 'minor' ? [0, 3, 7] : [0, 4, 7];
+  return new Set(triad.map((interval) => normalizeSemitone(interval)));
+}
+
+function getOpenStringSemitoneByTemplateIndex(index) {
+  const lowToHighOpen = [4, 9, 2, 7, 11, 4];
+  return lowToHighOpen[index];
+}
+
+function buildRenderedFingers(pattern, transposed, rootSemitone) {
+  const baseFingers = [];
+  for (let index = 0; index < transposed.absoluteFrets.length; index += 1) {
+    const absoluteFret = transposed.absoluteFrets[index];
+    const stringIndex = 6 - index;
+
+    if (absoluteFret === 'x') {
+      baseFingers.push([stringIndex, 'x']);
+      continue;
+    }
+
+    if (absoluteFret === 0) {
+      baseFingers.push([stringIndex, 0]);
+      continue;
+    }
+
+    const displayFret = absoluteFret - transposed.position + 1;
+    baseFingers.push([stringIndex, displayFret]);
+  }
+
+  const chordOverlay = getOverlayById('overlay-chord-tones');
+  const pentOverlay = getOverlayById('overlay-pentatonic');
+  const scaleOverlay = getOverlayById('overlay-diatonic');
+
+  const showChord = appState.overlays['overlay-chord-tones'] !== false;
+  const showPent = appState.overlays['overlay-pentatonic'] === true;
+  const showScale = appState.overlays['overlay-diatonic'] === true;
+
+  const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
+  const pentIntervals = getPentatonicIntervalsForQuality(appState.quality);
+  const chordIntervals = buildChordIntervalSet(appState.quality);
+
+  const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
+  const pentSet = new Set(pentIntervals.map((interval) => normalizeSemitone(interval)));
+  const degreeLabels = buildDegreeLabelMap(scaleIntervals);
+
+  const markerMap = new Map();
+
+  const addMarker = (stringIndex, displayFret, intervalFromRoot, color, priority) => {
+    const key = `${stringIndex}:${displayFret}`;
+    const current = markerMap.get(key);
+    if (current && current.priority <= priority) {
+      return;
+    }
+
+    markerMap.set(key, {
+      stringIndex,
+      displayFret,
+      priority,
+      color,
+      text: degreeLabels.get(intervalFromRoot) || '',
+    });
+  };
+
+  for (let stringTemplateIndex = 0; stringTemplateIndex < 6; stringTemplateIndex += 1) {
+    const openSemitone = getOpenStringSemitoneByTemplateIndex(stringTemplateIndex);
+    const stringIndex = 6 - stringTemplateIndex;
+
+    for (let displayFret = 1; displayFret <= transposed.frets; displayFret += 1) {
+      const absoluteFret = transposed.position + displayFret - 1;
+      const noteSemitone = normalizeSemitone(openSemitone + absoluteFret);
+      const intervalFromRoot = normalizeSemitone(noteSemitone - rootSemitone);
+
+      const isChord = chordIntervals.has(intervalFromRoot);
+      const isPent = pentSet.has(intervalFromRoot);
+      const isScale = scaleSet.has(intervalFromRoot);
+
+      if (showChord && isChord && chordOverlay) {
+        addMarker(stringIndex, displayFret, intervalFromRoot, chordOverlay.color, 1);
+        continue;
+      }
+
+      if (showPent && isPent && !isChord && pentOverlay) {
+        addMarker(stringIndex, displayFret, intervalFromRoot, pentOverlay.color, 2);
+        continue;
+      }
+
+      if (showScale && isScale && !isPent && !isChord && scaleOverlay) {
+        addMarker(stringIndex, displayFret, intervalFromRoot, scaleOverlay.color, 3);
+      }
+    }
+  }
+
+  if (markerMap.size === 0) {
+    return baseFingers;
+  }
+
+  const openAndMute = baseFingers.filter((finger) => finger[1] === 'x' || finger[1] === 0);
+  const markerFingers = Array.from(markerMap.values())
+    .sort((a, b) => a.stringIndex - b.stringIndex || a.displayFret - b.displayFret)
+    .map((marker) => [
+      marker.stringIndex,
+      marker.displayFret,
+      {
+        text: marker.text,
+        color: marker.color,
+        textColor: '#ffffff',
+      },
+    ]);
+
+  return [...openAndMute, ...markerFingers];
 }
 
 function renderChordFromTemplate(SVGuitarChord) {
@@ -375,6 +516,7 @@ function renderChordFromTemplate(SVGuitarChord) {
 
   const selected = parseSelectedNote();
   const transposed = transposeVoicing(pattern, selected.semitone);
+  const fingers = buildRenderedFingers(pattern, transposed, selected.semitone);
 
   const chart = new SVGuitarChord('#main-chart');
 
@@ -388,7 +530,7 @@ function renderChordFromTemplate(SVGuitarChord) {
     })
     .chord({
       title: transposed.title,
-      fingers: transposed.fingers,
+      fingers,
       barres: transposed.barres,
     })
     .draw();
