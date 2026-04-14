@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.14+fix-chord-overlay';
+const APP_VERSION = 'v2026.04.14+fix-scale-pent-overlap';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -504,7 +504,7 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
         continue;
       }
 
-      if (showScale && isScale && !isPent && scaleOverlay) {
+      if (showScale && isScale && !(showPent && isPent) && scaleOverlay) {
         addMarker(stringIndex, displayFret, intervalFromRoot, scaleOverlay.color, 3);
       }
     }
