@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.14+remove-template-dropdown';
+const APP_VERSION = 'v2026.04.15+open-string-degrees';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -420,6 +420,20 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
     const openSemitone = getOpenStringSemitoneByTemplateIndex(stringTemplateIndex);
     const stringIndex = 6 - stringTemplateIndex;
 
+    const openIntervalFromRoot = normalizeSemitone(openSemitone - rootSemitone);
+    const voicingOpenKey = `${stringIndex}:0`;
+    const isVoicingOpen = transposed.absoluteFrets[stringTemplateIndex] === 0;
+    const isOpenPent = pentSet.has(openIntervalFromRoot);
+    const isOpenScale = scaleSet.has(openIntervalFromRoot);
+
+    if (showChord && isVoicingOpen && chordOverlay) {
+      addMarker(stringIndex, 0, openIntervalFromRoot, chordOverlay.color, 1);
+    } else if (showPent && isOpenPent && pentOverlay) {
+      addMarker(stringIndex, 0, openIntervalFromRoot, pentOverlay.color, 2);
+    } else if (showScale && isOpenScale && !(showPent && isOpenPent) && scaleOverlay) {
+      addMarker(stringIndex, 0, openIntervalFromRoot, scaleOverlay.color, 3);
+    }
+
     for (let displayFret = 1; displayFret <= transposed.frets; displayFret += 1) {
       const absoluteFret = transposed.position + displayFret - 1;
       const noteSemitone = normalizeSemitone(openSemitone + absoluteFret);
@@ -450,8 +464,31 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
     return baseFingers;
   }
 
-  const openAndMute = baseFingers.filter((finger) => finger[1] === 'x' || finger[1] === 0);
+  const openAndMute = baseFingers
+    .map((finger) => {
+      if (finger[1] !== 0) {
+        return finger;
+      }
+
+      const stringIndex = finger[0];
+      const marker = markerMap.get(`${stringIndex}:0`);
+      if (!marker) {
+        return finger;
+      }
+
+      return [
+        stringIndex,
+        0,
+        {
+          text: marker.text,
+          textColor: marker.color,
+          strokeColor: marker.color,
+        },
+      ];
+    })
+    .filter((finger) => finger[1] === 'x' || finger[1] === 0);
   const markerFingers = Array.from(markerMap.values())
+    .filter((marker) => marker.displayFret > 0)
     .sort((a, b) => a.stringIndex - b.stringIndex || a.displayFret - b.displayFret)
     .map((marker) => [
       marker.stringIndex,
