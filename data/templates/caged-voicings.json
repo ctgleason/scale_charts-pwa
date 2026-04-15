@@ -90,6 +90,51 @@
       "caged": "D",
       "referenceRoot": "D",
       "relativeFrets": ["x", "x", 0, 2, 3, 1]
+    },
+    {
+      "id": "voicing-diminished-e",
+      "label": "Diminished Triad",
+      "type": "voicing",
+      "quality": "diminished",
+      "caged": "E",
+      "referenceRoot": "E",
+      "relativeFrets": [0, 1, 2, 0, "x", 3]
+    },
+    {
+      "id": "voicing-diminished-a",
+      "label": "Diminished Triad",
+      "type": "voicing",
+      "quality": "diminished",
+      "caged": "A",
+      "referenceRoot": "A",
+      "relativeFrets": ["x", 0, 1, 2, 1, "x"]
+    },
+    {
+      "id": "voicing-diminished-g",
+      "label": "Diminished Triad",
+      "type": "voicing",
+      "quality": "diminished",
+      "caged": "G",
+      "referenceRoot": "G",
+      "relativeFrets": [3, 1, "x", 3, 2, 3]
+    },
+    {
+      "id": "voicing-diminished-c",
+      "label": "Diminished Triad",
+      "type": "voicing",
+      "quality": "diminished",
+      "caged": "C",
+      "referenceRoot": "C",
+      "relativeFrets": ["x", 3, 4, 5, 4, "x"]
+    },
+    {
+      "id": "voicing-diminished-d",
+      "label": "Diminished Triad",
+      "type": "voicing",
+      "quality": "diminished",
+      "caged": "D",
+      "referenceRoot": "D",
+      "relativeFrets": ["x", "x", 0, 1, 3, 1]
     }
   ]
 }

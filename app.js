@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+all-chord-borders';
+const APP_VERSION = 'v2026.04.15+diminished-vii';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -101,8 +101,8 @@ const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 const DEGREE_TRIAD_QUALITIES = {
-  major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'minor'],
-  minor: ['minor', 'minor', 'major', 'minor', 'minor', 'major', 'major'],
+  major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished'],
+  minor: ['minor', 'diminished', 'major', 'minor', 'minor', 'major', 'major'],
 };
 
 function normalizeSemitone(value) {
@@ -154,7 +154,15 @@ function parseSelectedNote(state = appState) {
 }
 
 function getQualityLabel(quality) {
-  return quality === 'minor' ? 'Minor' : 'Major';
+  if (quality === 'minor') {
+    return 'Minor';
+  }
+
+  if (quality === 'diminished') {
+    return 'Diminished';
+  }
+
+  return 'Major';
 }
 
 function getChordSymbol() {
@@ -191,7 +199,9 @@ function getDegreeSelection() {
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetQuality = degreeQualities[degreeIndex] || 'major';
   const targetRootName = getNoteNameBySemitone(targetRootSemitone, appState.accidental);
-  const targetSymbol = `${targetRootName}${targetQuality === 'minor' ? 'm' : ''}`;
+  const targetSymbol = `${targetRootName}${
+    targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
+  }`;
 
   return {
     keyRootSemitone: keyNote.semitone,
@@ -455,7 +465,8 @@ function buildDegreeLabelMap(scaleIntervals) {
 }
 
 function buildTriadLabelMap(quality) {
-  const intervals = quality === 'minor' ? [0, 3, 7] : [0, 4, 7];
+  const intervals =
+    quality === 'minor' ? [0, 3, 7] : quality === 'diminished' ? [0, 3, 6] : [0, 4, 7];
   const labels = ['1', '3', '5'];
   const labelMap = new Map();
 
