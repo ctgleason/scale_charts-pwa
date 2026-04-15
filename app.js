@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.14+sw-auto-reload';
+const APP_VERSION = 'v2026.04.14+remove-template-dropdown';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -140,8 +140,6 @@ const appState = {
   accidental: '',
   quality: 'major',
   caged: 'C',
-  templateId: '',
-  templateLabel: '',
   overlays: {},
 };
 
@@ -228,69 +226,7 @@ function findVoicingByState(quality, caged) {
 }
 
 function findActiveVoicing() {
-  if (appState.templateId) {
-    const selected = catalog.voicings.find((voicing) => voicing.id === appState.templateId);
-    if (selected) {
-      return selected;
-    }
-  }
-
   return findVoicingByState(appState.quality, appState.caged);
-}
-
-function syncStateFromTemplate(template) {
-  if (!template) {
-    return;
-  }
-
-  appState.templateId = template.id;
-  appState.templateLabel = template.label || '';
-  appState.quality = template.quality || appState.quality;
-  appState.caged = template.caged || appState.caged;
-
-  const quality = document.getElementById('quality');
-  if (quality) {
-    quality.value = appState.quality;
-  }
-
-  const cagedButtons = document.getElementById('caged-buttons');
-  if (cagedButtons) {
-    Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
-      node.classList.toggle('is-active', node.dataset.voicing === appState.caged);
-    });
-  }
-}
-
-function syncTemplateSelectionToState() {
-  const selector = document.getElementById('template-pattern');
-  if (!selector) {
-    return;
-  }
-
-  const match = findVoicingByState(appState.quality, appState.caged);
-  if (match) {
-    appState.templateId = match.id;
-    appState.templateLabel = match.label || '';
-    selector.value = match.id;
-  }
-}
-
-function populateTemplateSelector() {
-  const selector = document.getElementById('template-pattern');
-  if (!selector) {
-    return;
-  }
-
-  selector.innerHTML = '';
-
-  for (const voicing of catalog.voicings) {
-    const option = document.createElement('option');
-    option.value = voicing.id;
-    option.textContent = `${getQualityLabel(voicing.quality)} ${voicing.caged} · ${voicing.label}`;
-    selector.appendChild(option);
-  }
-
-  syncTemplateSelectionToState();
 }
 
 function populateOverlayToggles() {
@@ -575,7 +511,7 @@ async function renderCharts() {
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
-      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nChord: ${getChordSymbol()}\nTemplate: ${appState.templateId || 'none'}`,
+      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nChord: ${getChordSymbol()}\nVoicing: ${appState.caged}/${appState.quality}`,
       svgCount === 0
     );
 
@@ -596,9 +532,8 @@ function setupControls() {
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
   const cagedButtons = document.getElementById('caged-buttons');
-  const templateSelector = document.getElementById('template-pattern');
 
-  if (!root || !accidental || !quality || !cagedButtons || !templateSelector) {
+  if (!root || !accidental || !quality || !cagedButtons) {
     return;
   }
 
@@ -620,7 +555,6 @@ function setupControls() {
 
   quality.addEventListener('change', () => {
     appState.quality = quality.value;
-    syncTemplateSelectionToState();
     updateSelectionTitle();
     renderCharts();
   });
@@ -637,14 +571,6 @@ function setupControls() {
       node.classList.toggle('is-active', node === button);
     });
 
-    syncTemplateSelectionToState();
-    updateSelectionTitle();
-    renderCharts();
-  });
-
-  templateSelector.addEventListener('change', () => {
-    const selected = catalog.voicings.find((voicing) => voicing.id === templateSelector.value);
-    syncStateFromTemplate(selected || null);
     updateSelectionTitle();
     renderCharts();
   });
@@ -675,11 +601,7 @@ async function boot() {
   await loadTemplates();
   setupControls();
   updateVersionLabel();
-  populateTemplateSelector();
   populateOverlayToggles();
-
-  const active = findActiveVoicing();
-  syncStateFromTemplate(active);
   updateSelectionTitle();
   await renderCharts();
 }
