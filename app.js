@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+open-string-degrees';
+const APP_VERSION = 'v2026.04.15+degree-chords';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -99,6 +99,11 @@ const NATURAL_NOTE_TO_SEMITONE = {
 
 const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+const DEGREE_TRIAD_QUALITIES = {
+  major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'minor'],
+  minor: ['minor', 'minor', 'major', 'minor', 'minor', 'major', 'major'],
+};
 
 function normalizeSemitone(value) {
   return ((value % 12) + 12) % 12;
@@ -140,6 +145,7 @@ const appState = {
   accidental: '',
   quality: 'major',
   caged: 'C',
+  degree: 1,
   overlays: {},
 };
 
@@ -157,14 +163,120 @@ function getChordSymbol() {
   return `${note.preferredName}${qualitySuffix}`;
 }
 
-function getSelectionLabel() {
-  return `${getChordSymbol()} (${getQualityLabel(appState.quality)}) · ${appState.caged} voicing`;
+function getDegreeIndex() {
+  const parsed = Number(appState.degree);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.min(6, Math.max(0, Math.trunc(parsed) - 1));
 }
 
-function updateSelectionTitle() {
+function getDegreeLabelByIndex(index) {
+  return DEGREE_LABELS[index] || 'I';
+}
+
+function getNoteNameBySemitone(semitone, accidentalPreference = '') {
+  const names = accidentalPreference === 'b' ? FLAT_NOTE_NAMES : SHARP_NOTE_NAMES;
+  return names[normalizeSemitone(semitone)];
+}
+
+function getDegreeSelection() {
+  const keyNote = parseSelectedNote();
+  const degreeIndex = getDegreeIndex();
+  const degreeLabel = getDegreeLabelByIndex(degreeIndex);
+  const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
+  const degreeQualities = DEGREE_TRIAD_QUALITIES[appState.quality] || DEGREE_TRIAD_QUALITIES.major;
+  const targetInterval = scaleIntervals[degreeIndex] ?? 0;
+  const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
+  const targetQuality = degreeQualities[degreeIndex] || 'major';
+  const targetRootName = getNoteNameBySemitone(targetRootSemitone, appState.accidental);
+  const targetSymbol = `${targetRootName}${targetQuality === 'minor' ? 'm' : ''}`;
+
+  return {
+    keyRootSemitone: keyNote.semitone,
+    keyQuality: appState.quality,
+    keySymbol: getChordSymbol(),
+    degreeIndex,
+    degreeLabel,
+    isTonic: degreeIndex === 0,
+    targetRootSemitone,
+    targetQuality,
+    targetSymbol,
+  };
+}
+
+function resolveVoicingForSelection(selection) {
+  const basePattern = findVoicingByState(appState.quality, appState.caged);
+  if (!basePattern) {
+    throw new Error('No base voicing template found for current selection.');
+  }
+
+  const baseTransposed = transposeVoicing(basePattern, selection.keyRootSemitone);
+  if (selection.isTonic) {
+    const tonicTransposed = transposeVoicing(basePattern, selection.targetRootSemitone);
+    return {
+      pattern: basePattern,
+      transposed: tonicTransposed,
+      caged: basePattern.caged,
+    };
+  }
+
+  const candidatePatterns = catalog.voicings.filter((voicing) => voicing.quality === selection.targetQuality);
+  if (candidatePatterns.length === 0) {
+    throw new Error(`No ${selection.targetQuality} voicing templates available.`);
+  }
+
+  let best = null;
+
+  for (const pattern of candidatePatterns) {
+    const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
+    const distance = Math.abs(transposed.position - baseTransposed.position);
+    const sameCagedPenalty = pattern.caged === appState.caged ? 0 : 1;
+
+    if (
+      !best ||
+      distance < best.distance ||
+      (distance === best.distance && sameCagedPenalty < best.sameCagedPenalty) ||
+      (distance === best.distance &&
+        sameCagedPenalty === best.sameCagedPenalty &&
+        transposed.position < best.transposed.position)
+    ) {
+      best = {
+        pattern,
+        transposed,
+        caged: pattern.caged,
+        distance,
+        sameCagedPenalty,
+      };
+    }
+  }
+
+  return {
+    pattern: best.pattern,
+    transposed: best.transposed,
+    caged: best.caged,
+  };
+}
+
+function getSelectionLabel(selection = null, resolvedVoicing = null) {
+  if (!selection) {
+    return `${getChordSymbol()} (${getQualityLabel(appState.quality)}) · ${appState.caged} voicing`;
+  }
+
+  const caged = resolvedVoicing?.caged || appState.caged;
+  const baseLabel = `${selection.targetSymbol} (${getQualityLabel(selection.targetQuality)}) · ${caged} voicing`;
+  if (selection.isTonic) {
+    return baseLabel;
+  }
+
+  return `${baseLabel} · Degree ${selection.degreeLabel} of ${selection.keySymbol}`;
+}
+
+function updateSelectionTitle(label = getSelectionLabel()) {
   const title = document.getElementById('selection-title');
   if (title) {
-    title.textContent = getSelectionLabel();
+    title.textContent = label;
   }
 }
 
@@ -264,7 +376,7 @@ function populateOverlayToggles() {
   }
 }
 
-function transposeVoicing(pattern, targetSemitone) {
+function transposeVoicing(pattern, targetSemitone, title = getSelectionLabel()) {
   const reference = parseNote(pattern.referenceRoot || 'C');
   const offset = normalizeSemitone(targetSemitone - reference.semitone);
 
@@ -306,7 +418,7 @@ function transposeVoicing(pattern, targetSemitone) {
   const frets = Math.max(5, displayedFretted.length > 0 ? Math.max(...displayedFretted) : 5);
 
   return {
-    title: getSelectionLabel(),
+    title,
     position,
     frets,
     absoluteFrets,
@@ -342,12 +454,31 @@ function buildDegreeLabelMap(scaleIntervals) {
   return labelMap;
 }
 
+function buildTriadLabelMap(quality) {
+  const intervals = quality === 'minor' ? [0, 3, 7] : [0, 4, 7];
+  const labels = ['1', '3', '5'];
+  const labelMap = new Map();
+
+  intervals.forEach((interval, index) => {
+    labelMap.set(interval, labels[index]);
+  });
+
+  return labelMap;
+}
+
 function getOpenStringSemitoneByTemplateIndex(index) {
   const lowToHighOpen = [4, 9, 2, 7, 11, 4];
   return lowToHighOpen[index];
 }
 
-function buildRenderedFingers(pattern, transposed, rootSemitone) {
+function buildRenderedFingers(pattern, transposed, renderContext) {
+  const {
+    keyRootSemitone,
+    keyQuality,
+    displayedChordRootSemitone,
+    displayedChordQuality,
+    useDisplayedChordDegreeLabels,
+  } = renderContext;
   const baseFingers = [];
   for (let index = 0; index < transposed.absoluteFrets.length; index += 1) {
     const absoluteFret = transposed.absoluteFrets[index];
@@ -375,12 +506,13 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
   const showPent = appState.overlays['overlay-pentatonic'] === true;
   const showScale = appState.overlays['overlay-diatonic'] === true;
 
-  const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
-  const pentIntervals = getPentatonicIntervalsForQuality(appState.quality);
+  const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
+  const pentIntervals = getPentatonicIntervalsForQuality(keyQuality);
 
   const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
   const pentSet = new Set(pentIntervals.map((interval) => normalizeSemitone(interval)));
-  const degreeLabels = buildDegreeLabelMap(scaleIntervals);
+  const keyDegreeLabels = buildDegreeLabelMap(scaleIntervals);
+  const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
   const voicingPositionSet = new Set();
 
   for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
@@ -400,7 +532,19 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
 
   const markerMap = new Map();
 
-  const addMarker = (stringIndex, displayFret, intervalFromRoot, color, priority) => {
+  const addMarker = (
+    stringIndex,
+    displayFret,
+    intervalFromRoot,
+    color,
+    priority,
+    {
+      text = keyDegreeLabels.get(intervalFromRoot) || '',
+      textColor = color,
+      fillColor = color,
+      strokeColor,
+    } = {}
+  ) => {
     const key = `${stringIndex}:${displayFret}`;
     const current = markerMap.get(key);
     if (current && current.priority <= priority) {
@@ -412,7 +556,10 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
       displayFret,
       priority,
       color,
-      text: degreeLabels.get(intervalFromRoot) || '',
+      fillColor,
+      strokeColor,
+      text,
+      textColor,
     });
   };
 
@@ -420,42 +567,66 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
     const openSemitone = getOpenStringSemitoneByTemplateIndex(stringTemplateIndex);
     const stringIndex = 6 - stringTemplateIndex;
 
-    const openIntervalFromRoot = normalizeSemitone(openSemitone - rootSemitone);
+    const openIntervalFromKeyRoot = normalizeSemitone(openSemitone - keyRootSemitone);
+    const openIntervalFromDisplayedChordRoot = normalizeSemitone(
+      openSemitone - displayedChordRootSemitone
+    );
     const voicingOpenKey = `${stringIndex}:0`;
     const isVoicingOpen = transposed.absoluteFrets[stringTemplateIndex] === 0;
-    const isOpenPent = pentSet.has(openIntervalFromRoot);
-    const isOpenScale = scaleSet.has(openIntervalFromRoot);
+    const isOpenPent = pentSet.has(openIntervalFromKeyRoot);
+    const isOpenScale = scaleSet.has(openIntervalFromKeyRoot);
 
     if (showChord && isVoicingOpen && chordOverlay) {
-      addMarker(stringIndex, 0, openIntervalFromRoot, chordOverlay.color, 1);
+      const chordText = useDisplayedChordDegreeLabels
+        ? chordDegreeLabels.get(openIntervalFromDisplayedChordRoot) || ''
+        : keyDegreeLabels.get(openIntervalFromKeyRoot) || '';
+      addMarker(stringIndex, 0, openIntervalFromKeyRoot, chordOverlay.color, 1, {
+        text: chordText,
+        textColor: chordOverlay.color,
+      });
     } else if (showPent && isOpenPent && pentOverlay) {
-      addMarker(stringIndex, 0, openIntervalFromRoot, pentOverlay.color, 2);
+      addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2);
     } else if (showScale && isOpenScale && !(showPent && isOpenPent) && scaleOverlay) {
-      addMarker(stringIndex, 0, openIntervalFromRoot, scaleOverlay.color, 3);
+      addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
     }
 
     for (let displayFret = 1; displayFret <= transposed.frets; displayFret += 1) {
       const absoluteFret = transposed.position + displayFret - 1;
       const noteSemitone = normalizeSemitone(openSemitone + absoluteFret);
-      const intervalFromRoot = normalizeSemitone(noteSemitone - rootSemitone);
+      const intervalFromKeyRoot = normalizeSemitone(noteSemitone - keyRootSemitone);
+      const intervalFromDisplayedChordRoot = normalizeSemitone(
+        noteSemitone - displayedChordRootSemitone
+      );
 
       const positionKey = `${stringIndex}:${displayFret}`;
       const isVoicingPosition = voicingPositionSet.has(positionKey);
-      const isPent = pentSet.has(intervalFromRoot);
-      const isScale = scaleSet.has(intervalFromRoot);
+      const isPent = pentSet.has(intervalFromKeyRoot);
+      const isScale = scaleSet.has(intervalFromKeyRoot);
 
       if (showChord && isVoicingPosition && chordOverlay) {
-        addMarker(stringIndex, displayFret, intervalFromRoot, chordOverlay.color, 1);
+        const chordText = useDisplayedChordDegreeLabels
+          ? chordDegreeLabels.get(intervalFromDisplayedChordRoot) || ''
+          : keyDegreeLabels.get(intervalFromKeyRoot) || '';
+        addMarker(stringIndex, displayFret, intervalFromKeyRoot, chordOverlay.color, 1, {
+          text: chordText,
+          textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
+          fillColor: useDisplayedChordDegreeLabels ? '#ffffff' : chordOverlay.color,
+          strokeColor: useDisplayedChordDegreeLabels ? chordOverlay.color : undefined,
+        });
         continue;
       }
 
       if (showPent && isPent && pentOverlay) {
-        addMarker(stringIndex, displayFret, intervalFromRoot, pentOverlay.color, 2);
+        addMarker(stringIndex, displayFret, intervalFromKeyRoot, pentOverlay.color, 2, {
+          textColor: '#ffffff',
+        });
         continue;
       }
 
       if (showScale && isScale && !(showPent && isPent) && scaleOverlay) {
-        addMarker(stringIndex, displayFret, intervalFromRoot, scaleOverlay.color, 3);
+        addMarker(stringIndex, displayFret, intervalFromKeyRoot, scaleOverlay.color, 3, {
+          textColor: '#ffffff',
+        });
       }
     }
   }
@@ -481,8 +652,8 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
         0,
         {
           text: marker.text,
-          textColor: marker.color,
-          strokeColor: marker.color,
+          textColor: marker.textColor,
+          strokeColor: marker.strokeColor || marker.color,
         },
       ];
     })
@@ -495,8 +666,9 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
       marker.displayFret,
       {
         text: marker.text,
-        color: marker.color,
-        textColor: '#ffffff',
+        color: marker.fillColor,
+        textColor: marker.textColor,
+        strokeColor: marker.strokeColor,
       },
     ]);
 
@@ -504,14 +676,21 @@ function buildRenderedFingers(pattern, transposed, rootSemitone) {
 }
 
 function renderChordFromTemplate(SVGuitarChord) {
-  const pattern = findActiveVoicing();
-  if (!pattern) {
-    throw new Error('No voicing template found for current selection.');
-  }
-
-  const selected = parseSelectedNote();
-  const transposed = transposeVoicing(pattern, selected.semitone);
-  const fingers = buildRenderedFingers(pattern, transposed, selected.semitone);
+  const selection = getDegreeSelection();
+  const resolvedVoicing = resolveVoicingForSelection(selection);
+  const selectionLabel = getSelectionLabel(selection, resolvedVoicing);
+  const transposed = transposeVoicing(
+    resolvedVoicing.pattern,
+    selection.targetRootSemitone,
+    selectionLabel
+  );
+  const fingers = buildRenderedFingers(resolvedVoicing.pattern, transposed, {
+    keyRootSemitone: selection.keyRootSemitone,
+    keyQuality: selection.keyQuality,
+    displayedChordRootSemitone: selection.targetRootSemitone,
+    displayedChordQuality: selection.targetQuality,
+    useDisplayedChordDegreeLabels: !selection.isTonic,
+  });
 
   const chart = new SVGuitarChord('#main-chart');
 
@@ -529,6 +708,12 @@ function renderChordFromTemplate(SVGuitarChord) {
       barres: transposed.barres,
     })
     .draw();
+
+  return {
+    selectionLabel,
+    renderedChordSymbol: selection.targetSymbol,
+    renderedDegreeLabel: selection.degreeLabel,
+  };
 }
 
 async function renderCharts() {
@@ -543,12 +728,12 @@ async function renderCharts() {
 
     chartContainer.innerHTML = '';
 
-    renderChordFromTemplate(SVGuitarChord);
-    updateSelectionTitle();
+    const renderResult = renderChordFromTemplate(SVGuitarChord);
+    updateSelectionTitle(renderResult.selectionLabel);
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
-      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nChord: ${getChordSymbol()}\nVoicing: ${appState.caged}/${appState.quality}`,
+      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nKey: ${getChordSymbol()}\nDisplayed chord: ${renderResult.renderedDegreeLabel} (${renderResult.renderedChordSymbol})`,
       svgCount === 0
     );
 
@@ -569,8 +754,9 @@ function setupControls() {
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
   const cagedButtons = document.getElementById('caged-buttons');
+  const degreeButtons = document.getElementById('degree-buttons');
 
-  if (!root || !accidental || !quality || !cagedButtons) {
+  if (!root || !accidental || !quality || !cagedButtons || !degreeButtons) {
     return;
   }
 
@@ -605,6 +791,22 @@ function setupControls() {
     appState.caged = button.dataset.voicing;
 
     Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
+      node.classList.toggle('is-active', node === button);
+    });
+
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  degreeButtons.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-degree]');
+    if (!button) {
+      return;
+    }
+
+    appState.degree = Number(button.dataset.degree) || 1;
+
+    Array.from(degreeButtons.querySelectorAll('button[data-degree]')).forEach((node) => {
       node.classList.toggle('is-active', node === button);
     });
 
