@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+degree-chord-borders';
+const APP_VERSION = 'v2026.04.15+all-chord-borders';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -613,8 +613,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
           text: chordText,
           textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
           fillColor: useDisplayedChordDegreeLabels ? '#ffffff' : chordOverlay.color,
-          strokeColor: useDisplayedChordDegreeLabels ? '#000000' : undefined,
-          strokeWidth: useDisplayedChordDegreeLabels ? 2 : undefined,
+          strokeColor: '#000000',
+          strokeWidth: 2,
         });
         continue;
       }
