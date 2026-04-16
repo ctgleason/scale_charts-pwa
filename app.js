@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+ui-cleanup';
+const APP_VERSION = 'v2026.04.15+fixed-fretboard-alignment';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -804,6 +804,7 @@ function renderChordFromTemplate(SVGuitarChord) {
       strings: 6,
       frets: diagramFrets,
       position: diagramPosition,
+      fixedDiagramPosition: true,
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
     })
     .chord({
