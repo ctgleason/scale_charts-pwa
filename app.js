@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+chord-pentatonic';
+const APP_VERSION = 'v2026.04.15+chord-pent-labeling';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -563,6 +563,18 @@ function buildTriadLabelMap(quality) {
   return labelMap;
 }
 
+function buildChordPentatonicLabelMap(quality) {
+  const intervals = getPentatonicIntervalsForQuality(quality);
+  const labels = ['1', '2', '3', '4', '5'];
+  const labelMap = new Map();
+
+  intervals.forEach((interval, index) => {
+    labelMap.set(interval, labels[index]);
+  });
+
+  return labelMap;
+}
+
 function getOpenStringSemitoneByTemplateIndex(index) {
   const lowToHighOpen = [4, 9, 2, 7, 11, 4];
   return lowToHighOpen[index];
@@ -620,6 +632,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
   const chordPentSet = new Set(chordPentIntervals.map((interval) => normalizeSemitone(interval)));
   const keyDegreeLabels = buildDegreeLabelMap(scaleIntervals);
   const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
+  const chordPentLabels = buildChordPentatonicLabelMap(displayedChordQuality);
   const voicingPositionSet = new Set();
 
   for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
@@ -696,7 +709,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       });
     } else if (showChordPent && isOpenChordPent && chordPentOverlay) {
       addMarker(stringIndex, 0, openIntervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
-        text: chordDegreeLabels.get(openIntervalFromDisplayedChordRoot) || '',
+        text: chordPentLabels.get(openIntervalFromDisplayedChordRoot) || '',
         textColor: '#ffffff',
       });
     } else if (showKeyPent && isOpenKeyPent && pentOverlay) {
@@ -739,7 +752,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
       if (showChordPent && isChordPent && chordPentOverlay) {
         addMarker(stringIndex, displayFret, intervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
-          text: chordDegreeLabels.get(intervalFromDisplayedChordRoot) || '',
+          text: chordPentLabels.get(intervalFromDisplayedChordRoot) || '',
           textColor: '#ffffff',
         });
         continue;
