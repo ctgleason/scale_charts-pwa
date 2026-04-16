@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+degree-position-tiebreaks';
+const APP_VERSION = 'v2026.04.15+fixed-scale-frame';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -561,7 +561,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     displayedChordRootSemitone,
     displayedChordQuality,
     useDisplayedChordDegreeLabels,
-    overlayAnchorPosition,
+    diagramPosition,
+    diagramFrets,
   } = renderContext;
   const baseFingers = [];
   for (let index = 0; index < transposed.absoluteFrets.length; index += 1) {
@@ -578,7 +579,11 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       continue;
     }
 
-    const displayFret = absoluteFret - transposed.position + 1;
+    const displayFret = absoluteFret - diagramPosition + 1;
+    if (displayFret < 1 || displayFret > diagramFrets) {
+      continue;
+    }
+
     baseFingers.push([stringIndex, displayFret]);
   }
 
@@ -605,8 +610,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       continue;
     }
 
-    const displayFret = absoluteFret - transposed.position + 1;
-    if (displayFret < 1 || displayFret > transposed.frets) {
+    const displayFret = absoluteFret - diagramPosition + 1;
+    if (displayFret < 1 || displayFret > diagramFrets) {
       continue;
     }
 
@@ -676,9 +681,9 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
     }
 
-    for (let displayFret = 1; displayFret <= transposed.frets; displayFret += 1) {
-      const displayedAbsoluteFret = transposed.position + displayFret - 1;
-      const overlayAbsoluteFret = overlayAnchorPosition + displayFret - 1;
+    for (let displayFret = 1; displayFret <= diagramFrets; displayFret += 1) {
+      const displayedAbsoluteFret = diagramPosition + displayFret - 1;
+      const overlayAbsoluteFret = diagramPosition + displayFret - 1;
 
       const displayedNoteSemitone = normalizeSemitone(openSemitone + displayedAbsoluteFret);
       const overlayNoteSemitone = normalizeSemitone(openSemitone + overlayAbsoluteFret);
@@ -776,13 +781,24 @@ function renderChordFromTemplate(SVGuitarChord) {
     selection.targetRootSemitone,
     selectionLabel
   );
+  const diagramPosition = resolvedVoicing.anchorPosition;
+  const displayedFrettedInFrame = transposed.absoluteFrets
+    .filter((fret) => typeof fret === 'number' && fret > 0)
+    .map((fret) => fret - diagramPosition + 1)
+    .filter((fret) => fret >= 1);
+  const diagramFrets = Math.max(
+    5,
+    displayedFrettedInFrame.length > 0 ? Math.max(...displayedFrettedInFrame) : 5
+  );
+
   const fingers = buildRenderedFingers(resolvedVoicing.pattern, transposed, {
     keyRootSemitone: selection.keyRootSemitone,
     keyQuality: selection.keyQuality,
     displayedChordRootSemitone: selection.targetRootSemitone,
     displayedChordQuality: selection.targetQuality,
     useDisplayedChordDegreeLabels: !selection.isTonic,
-    overlayAnchorPosition: resolvedVoicing.anchorPosition,
+    diagramPosition,
+    diagramFrets,
   });
 
   const chart = new SVGuitarChord('#main-chart');
@@ -791,8 +807,8 @@ function renderChordFromTemplate(SVGuitarChord) {
     .configure({
       style: 'normal',
       strings: 6,
-      frets: transposed.frets,
-      position: transposed.position,
+      frets: diagramFrets,
+      position: diagramPosition,
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
     })
     .chord({
