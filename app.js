@@ -290,6 +290,7 @@ function resolveVoicingForSelection(selection) {
       pattern: basePattern,
       transposed: tonicTransposed,
       caged: basePattern.caged,
+      anchorPosition: baseTransposed.position,
     };
   }
 
@@ -336,6 +337,7 @@ function resolveVoicingForSelection(selection) {
     pattern: best.pattern,
     transposed: best.transposed,
     caged: best.caged,
+    anchorPosition: baseTransposed.position,
   };
 }
 
@@ -559,6 +561,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     displayedChordRootSemitone,
     displayedChordQuality,
     useDisplayedChordDegreeLabels,
+    overlayAnchorPosition,
   } = renderContext;
   const baseFingers = [];
   for (let index = 0; index < transposed.absoluteFrets.length; index += 1) {
@@ -674,11 +677,15 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     }
 
     for (let displayFret = 1; displayFret <= transposed.frets; displayFret += 1) {
-      const absoluteFret = transposed.position + displayFret - 1;
-      const noteSemitone = normalizeSemitone(openSemitone + absoluteFret);
-      const intervalFromKeyRoot = normalizeSemitone(noteSemitone - keyRootSemitone);
+      const displayedAbsoluteFret = transposed.position + displayFret - 1;
+      const overlayAbsoluteFret = overlayAnchorPosition + displayFret - 1;
+
+      const displayedNoteSemitone = normalizeSemitone(openSemitone + displayedAbsoluteFret);
+      const overlayNoteSemitone = normalizeSemitone(openSemitone + overlayAbsoluteFret);
+
+      const intervalFromKeyRoot = normalizeSemitone(overlayNoteSemitone - keyRootSemitone);
       const intervalFromDisplayedChordRoot = normalizeSemitone(
-        noteSemitone - displayedChordRootSemitone
+        displayedNoteSemitone - displayedChordRootSemitone
       );
 
       const positionKey = `${stringIndex}:${displayFret}`;
@@ -775,6 +782,7 @@ function renderChordFromTemplate(SVGuitarChord) {
     displayedChordRootSemitone: selection.targetRootSemitone,
     displayedChordQuality: selection.targetQuality,
     useDisplayedChordDegreeLabels: !selection.isTonic,
+    overlayAnchorPosition: resolvedVoicing.anchorPosition,
   });
 
   const chart = new SVGuitarChord('#main-chart');
