@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+diminished-vii';
+const APP_VERSION = 'v2026.04.15+stable-degree-positions';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -179,13 +179,16 @@ function getDegreeIndex() {
 
   return Math.min(6, Math.max(0, Math.trunc(parsed) - 1));
 }
-const APP_VERSION = 'v2026.04.15+diminished-fallback';
+
 function getDegreeLabelByIndex(index) {
   return DEGREE_LABELS[index] || 'I';
 }
 
 function getNoteNameBySemitone(semitone, accidentalPreference = '') {
   const names = accidentalPreference === 'b' ? FLAT_NOTE_NAMES : SHARP_NOTE_NAMES;
+  return names[normalizeSemitone(semitone)];
+}
+
 const EMBEDDED_DIMINISHED_VOICINGS = [
   {
     id: 'fallback-voicing-diminished-c',
@@ -233,11 +236,7 @@ const EMBEDDED_DIMINISHED_VOICINGS = [
     relativeFrets: ['x', 'x', 0, 1, 3, 1],
   },
 ];
-  return names[normalizeSemitone(semitone)];
-}
 
-function getDegreeSelection() {
-  const keyNote = parseSelectedNote();
 function getVoicingCandidatesByQuality(quality) {
   const matches = catalog.voicings.filter((voicing) => voicing.quality === quality);
   if (matches.length > 0) {
@@ -250,6 +249,9 @@ function getVoicingCandidatesByQuality(quality) {
 
   return [];
 }
+
+function getDegreeSelection() {
+  const keyNote = parseSelectedNote();
   const degreeIndex = getDegreeIndex();
   const degreeLabel = getDegreeLabelByIndex(degreeIndex);
   const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
@@ -257,7 +259,7 @@ function getVoicingCandidatesByQuality(quality) {
   const targetInterval = scaleIntervals[degreeIndex] ?? 0;
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetQuality = degreeQualities[degreeIndex] || 'major';
-  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
+  const targetRootName = getNoteNameBySemitone(targetRootSemitone, appState.accidental);
   const targetSymbol = `${targetRootName}${
     targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
   }`;
@@ -291,24 +293,29 @@ function resolveVoicingForSelection(selection) {
     };
   }
 
-  const candidatePatterns = catalog.voicings.filter((voicing) => voicing.quality === selection.targetQuality);
+  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
   if (candidatePatterns.length === 0) {
     throw new Error(`No ${selection.targetQuality} voicing templates available.`);
   }
 
+  const sameCagedCandidates = candidatePatterns.filter((pattern) => pattern.caged === appState.caged);
+  const hasOpenAnchor = baseTransposed.position === 1;
+  const evaluatePool = sameCagedCandidates.length > 0 ? sameCagedCandidates : candidatePatterns;
+
   let best = null;
 
-  for (const pattern of candidatePatterns) {
+  for (const pattern of evaluatePool) {
     const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
     const distance = Math.abs(transposed.position - baseTransposed.position);
-    const sameCagedPenalty = pattern.caged === appState.caged ? 0 : 1;
+    const usesOpenPosition = transposed.position === 1;
+    const openPenalty = !hasOpenAnchor && usesOpenPosition ? 1 : 0;
 
     if (
       !best ||
-      distance < best.distance ||
-      (distance === best.distance && sameCagedPenalty < best.sameCagedPenalty) ||
-      (distance === best.distance &&
-        sameCagedPenalty === best.sameCagedPenalty &&
+      openPenalty < best.openPenalty ||
+      (openPenalty === best.openPenalty && distance < best.distance) ||
+      (openPenalty === best.openPenalty &&
+        distance === best.distance &&
         transposed.position < best.transposed.position)
     ) {
       best = {
@@ -316,7 +323,7 @@ function resolveVoicingForSelection(selection) {
         transposed,
         caged: pattern.caged,
         distance,
-        sameCagedPenalty,
+        openPenalty,
       };
     }
   }
