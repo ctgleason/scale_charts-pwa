@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+prefret-filled-marker-text-fix';
+const APP_VERSION = 'v2026.04.15+open-string-overlay-fallback';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -722,12 +722,14 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     const isOpenChordPent = chordPentSet.has(openIntervalFromDisplayedChordRoot);
     const isOpenScale = scaleSet.has(openIntervalFromKeyRoot);
 
-    if (showChord && isVoicingOpen && chordOverlay) {
-      const chordText = useDisplayedChordDegreeLabels
-        ? chordDegreeLabels.get(openIntervalFromDisplayedChordRoot) || ''
-        : keyDegreeLabels.get(openIntervalFromKeyRoot) || '';
+    const openChordText = useDisplayedChordDegreeLabels
+      ? chordDegreeLabels.get(openIntervalFromDisplayedChordRoot) || ''
+      : keyDegreeLabels.get(openIntervalFromKeyRoot) || '';
+    const hasOpenChordLabel = openChordText !== '';
+
+    if (showChord && isVoicingOpen && chordOverlay && hasOpenChordLabel) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, chordOverlay.color, 1, {
-        text: chordText,
+        text: openChordText,
         textColor: chordOverlay.color,
       });
     } else if (showChordPent && isOpenChordPent && chordPentOverlay) {
@@ -757,12 +759,14 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       const isPreChordPent = chordPentSet.has(preIntervalFromDisplayedChordRoot);
       const isPreScale = scaleSet.has(preIntervalFromKeyRoot);
 
-      if (isPreChord && chordOverlay) {
-        const chordText = useDisplayedChordDegreeLabels
-          ? chordDegreeLabels.get(preIntervalFromDisplayedChordRoot) || ''
-          : keyDegreeLabels.get(preIntervalFromKeyRoot) || '';
+      const preChordText = useDisplayedChordDegreeLabels
+        ? chordDegreeLabels.get(preIntervalFromDisplayedChordRoot) || ''
+        : keyDegreeLabels.get(preIntervalFromKeyRoot) || '';
+      const hasPreChordLabel = preChordText !== '';
+
+      if (isPreChord && chordOverlay && hasPreChordLabel) {
         addPreFretMarker(stringIndex, 1, {
-          text: chordText,
+          text: preChordText,
           textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
           fillColor: useDisplayedChordDegreeLabels ? '#ffffff' : chordOverlay.color,
           strokeColor: '#000000',
@@ -813,10 +817,12 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       const isChordPent = chordPentSet.has(intervalFromDisplayedChordRoot);
       const isScale = scaleSet.has(intervalFromKeyRoot);
 
-      if (showChord && isVoicingPosition && chordOverlay) {
-        const chordText = useDisplayedChordDegreeLabels
-          ? chordDegreeLabels.get(intervalFromDisplayedChordRoot) || ''
-          : keyDegreeLabels.get(intervalFromKeyRoot) || '';
+      const chordText = useDisplayedChordDegreeLabels
+        ? chordDegreeLabels.get(intervalFromDisplayedChordRoot) || ''
+        : keyDegreeLabels.get(intervalFromKeyRoot) || '';
+      const hasChordLabel = chordText !== '';
+
+      if (showChord && isVoicingPosition && chordOverlay && hasChordLabel) {
         addMarker(stringIndex, displayFret, intervalFromKeyRoot, chordOverlay.color, 1, {
           text: chordText,
           textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
