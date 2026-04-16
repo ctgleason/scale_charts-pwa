@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+fixed-fretboard-alignment';
+const APP_VERSION = 'v2026.04.15+chord-pentatonic';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -446,6 +446,24 @@ function populateOverlayToggles() {
     container.appendChild(label);
 
     checkbox.addEventListener('change', () => {
+      // Mutual exclusion: only one pentatonic mode (key vs. chord) can be active
+      if (checkbox.checked) {
+        if (overlay.id === 'overlay-pentatonic') {
+          appState.overlays['overlay-chord-pentatonic'] = false;
+          const chordPentToggle = container.querySelector('input[data-overlay-id="overlay-chord-pentatonic"]');
+          if (chordPentToggle) {
+            chordPentToggle.checked = false;
+            chordPentToggle.parentElement.classList.remove('is-active');
+          }
+        } else if (overlay.id === 'overlay-chord-pentatonic') {
+          appState.overlays['overlay-pentatonic'] = false;
+          const keyPentToggle = container.querySelector('input[data-overlay-id="overlay-pentatonic"]');
+          if (keyPentToggle) {
+            keyPentToggle.checked = false;
+            keyPentToggle.parentElement.classList.remove('is-active');
+          }
+        }
+      }
       appState.overlays[overlay.id] = checkbox.checked;
       label.classList.toggle('is-active', checkbox.checked);
       renderCharts();
@@ -584,17 +602,21 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
   const chordOverlay = getOverlayById('overlay-chord-tones');
   const pentOverlay = getOverlayById('overlay-pentatonic');
+  const chordPentOverlay = getOverlayById('overlay-chord-pentatonic');
   const scaleOverlay = getOverlayById('overlay-diatonic');
 
   const showChord = appState.overlays['overlay-chord-tones'] !== false;
-  const showPent = appState.overlays['overlay-pentatonic'] === true;
+  const showKeyPent = appState.overlays['overlay-pentatonic'] === true;
+  const showChordPent = appState.overlays['overlay-chord-pentatonic'] === true;
   const showScale = appState.overlays['overlay-diatonic'] === true;
 
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
-  const pentIntervals = getPentatonicIntervalsForQuality(keyQuality);
+  const keyPentIntervals = getPentatonicIntervalsForQuality(keyQuality);
+  const chordPentIntervals = getPentatonicIntervalsForQuality(displayedChordQuality);
 
   const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
-  const pentSet = new Set(pentIntervals.map((interval) => normalizeSemitone(interval)));
+  const keyPentSet = new Set(keyPentIntervals.map((interval) => normalizeSemitone(interval)));
+  const chordPentSet = new Set(chordPentIntervals.map((interval) => normalizeSemitone(interval)));
   const keyDegreeLabels = buildDegreeLabelMap(scaleIntervals);
   const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
   const voicingPositionSet = new Set();
@@ -659,7 +681,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     );
     const voicingOpenKey = `${stringIndex}:0`;
     const isVoicingOpen = transposed.absoluteFrets[stringTemplateIndex] === 0;
-    const isOpenPent = pentSet.has(openIntervalFromKeyRoot);
+    const isOpenKeyPent = keyPentSet.has(openIntervalFromKeyRoot);
+    const isOpenChordPent = chordPentSet.has(openIntervalFromDisplayedChordRoot);
     const isOpenScale = scaleSet.has(openIntervalFromKeyRoot);
 
     if (showChord && isVoicingOpen && chordOverlay) {
@@ -670,9 +693,14 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         text: chordText,
         textColor: chordOverlay.color,
       });
-    } else if (showPent && isOpenPent && pentOverlay) {
+    } else if (showChordPent && isOpenChordPent && chordPentOverlay) {
+      addMarker(stringIndex, 0, openIntervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
+        text: chordDegreeLabels.get(openIntervalFromDisplayedChordRoot) || '',
+        textColor: '#ffffff',
+      });
+    } else if (showKeyPent && isOpenKeyPent && pentOverlay) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2);
-    } else if (showScale && isOpenScale && !(showPent && isOpenPent) && scaleOverlay) {
+    } else if (showScale && isOpenScale && !(showKeyPent && isOpenKeyPent) && !(showChordPent && isOpenChordPent) && scaleOverlay) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
     }
 
@@ -690,7 +718,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
       const positionKey = `${stringIndex}:${displayFret}`;
       const isVoicingPosition = voicingPositionSet.has(positionKey);
-      const isPent = pentSet.has(intervalFromKeyRoot);
+      const isKeyPent = keyPentSet.has(intervalFromKeyRoot);
+      const isChordPent = chordPentSet.has(intervalFromDisplayedChordRoot);
       const isScale = scaleSet.has(intervalFromKeyRoot);
 
       if (showChord && isVoicingPosition && chordOverlay) {
@@ -707,14 +736,22 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         continue;
       }
 
-      if (showPent && isPent && pentOverlay) {
+      if (showChordPent && isChordPent && chordPentOverlay) {
+        addMarker(stringIndex, displayFret, intervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
+          text: chordDegreeLabels.get(intervalFromDisplayedChordRoot) || '',
+          textColor: '#ffffff',
+        });
+        continue;
+      }
+
+      if (showKeyPent && isKeyPent && pentOverlay) {
         addMarker(stringIndex, displayFret, intervalFromKeyRoot, pentOverlay.color, 2, {
           textColor: '#ffffff',
         });
         continue;
       }
 
-      if (showScale && isScale && !(showPent && isPent) && scaleOverlay) {
+      if (showScale && isScale && !(showKeyPent && isKeyPent) && !(showChordPent && isChordPent) && scaleOverlay) {
         addMarker(stringIndex, displayFret, intervalFromKeyRoot, scaleOverlay.color, 3, {
           textColor: '#ffffff',
         });

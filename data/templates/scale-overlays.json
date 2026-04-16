@@ -9,9 +9,15 @@
     },
     {
       "id": "overlay-pentatonic",
-      "label": "Pentatonic",
+      "label": "Key pentatonic",
       "color": "#111111",
       "defaultEnabled": true
+    },
+    {
+      "id": "overlay-chord-pentatonic",
+      "label": "Chord pentatonic",
+      "color": "#16a34a",
+      "defaultEnabled": false
     },
     {
       "id": "overlay-diatonic",
