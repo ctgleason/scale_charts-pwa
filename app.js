@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+chord-pent-degree-fix';
+const APP_VERSION = 'v2026.04.15+prefret-top-labels';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -652,6 +652,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
   }
 
   const markerMap = new Map();
+  const preFretMarkerMap = new Map();
 
   const addMarker = (
     stringIndex,
@@ -681,6 +682,20 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       fillColor,
       strokeColor,
       strokeWidth,
+      text,
+      textColor,
+    });
+  };
+
+  const addPreFretMarker = (stringIndex, priority, { text = '', textColor = '#111111' } = {}) => {
+    const current = preFretMarkerMap.get(stringIndex);
+    if (current && current.priority <= priority) {
+      return;
+    }
+
+    preFretMarkerMap.set(stringIndex, {
+      stringIndex,
+      priority,
       text,
       textColor,
     });
@@ -717,6 +732,38 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2);
     } else if (showScale && isOpenScale && !(showKeyPent && isOpenKeyPent) && !(showChordPent && isOpenChordPent) && scaleOverlay) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
+    }
+
+    const isMutedString = transposed.absoluteFrets[stringTemplateIndex] === 'x';
+    const canShowPreFret = diagramPosition > 1 && isMutedString;
+    if (canShowPreFret) {
+      const preFretAbsolute = diagramPosition - 1;
+      const preFretSemitone = normalizeSemitone(openSemitone + preFretAbsolute);
+      const preIntervalFromKeyRoot = normalizeSemitone(preFretSemitone - keyRootSemitone);
+      const preIntervalFromDisplayedChordRoot = normalizeSemitone(
+        preFretSemitone - displayedChordRootSemitone
+      );
+
+      const isPreKeyPent = keyPentSet.has(preIntervalFromKeyRoot);
+      const isPreChordPent = chordPentSet.has(preIntervalFromDisplayedChordRoot);
+      const isPreScale = scaleSet.has(preIntervalFromKeyRoot);
+
+      if (showChordPent && isPreChordPent && chordPentOverlay) {
+        addPreFretMarker(stringIndex, 2, {
+          text: chordPentLabels.get(preIntervalFromDisplayedChordRoot) || '',
+          textColor: chordPentOverlay.color,
+        });
+      } else if (showKeyPent && isPreKeyPent && pentOverlay) {
+        addPreFretMarker(stringIndex, 2, {
+          text: keyDegreeLabels.get(preIntervalFromKeyRoot) || '',
+          textColor: pentOverlay.color,
+        });
+      } else if (showScale && isPreScale && !(showKeyPent && isPreKeyPent) && !(showChordPent && isPreChordPent) && scaleOverlay) {
+        addPreFretMarker(stringIndex, 3, {
+          text: keyDegreeLabels.get(preIntervalFromKeyRoot) || '',
+          textColor: scaleOverlay.color,
+        });
+      }
     }
 
     for (let displayFret = 1; displayFret <= diagramFrets; displayFret += 1) {
@@ -774,12 +821,31 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     }
   }
 
-  if (markerMap.size === 0) {
+  if (markerMap.size === 0 && preFretMarkerMap.size === 0) {
     return baseFingers;
   }
 
   const openAndMute = baseFingers
     .map((finger) => {
+      if (finger[1] === 'x') {
+        const stringIndex = finger[0];
+        const preFretMarker = preFretMarkerMap.get(stringIndex);
+        if (!preFretMarker || !preFretMarker.text) {
+          return finger;
+        }
+
+        return [
+          stringIndex,
+          0,
+          {
+            text: preFretMarker.text,
+            textColor: preFretMarker.textColor,
+            strokeColor: 'transparent',
+            strokeWidth: 0,
+          },
+        ];
+      }
+
       if (finger[1] !== 0) {
         return finger;
       }
