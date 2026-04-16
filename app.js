@@ -367,7 +367,8 @@ function updateVersionLabel() {
 }
 
 async function loadTemplates() {
-  const registryResponse = await fetch('./data/templates/registry.json');
+  const cachebust = `?v=${APP_VERSION}`;
+  const registryResponse = await fetch(`./data/templates/registry.json${cachebust}`);
   if (!registryResponse.ok) {
     throw new Error('Failed to load template registry.');
   }
@@ -381,7 +382,7 @@ async function loadTemplates() {
 
   const responses = await Promise.all(
     templateFiles.map(async (path) => {
-      const response = await fetch(path);
+      const response = await fetch(`${path}${cachebust}`);
       if (!response.ok) {
         throw new Error(`Failed to load template file: ${path}`);
       }
