@@ -179,18 +179,77 @@ function getDegreeIndex() {
 
   return Math.min(6, Math.max(0, Math.trunc(parsed) - 1));
 }
-
+const APP_VERSION = 'v2026.04.15+diminished-fallback';
 function getDegreeLabelByIndex(index) {
   return DEGREE_LABELS[index] || 'I';
 }
 
 function getNoteNameBySemitone(semitone, accidentalPreference = '') {
   const names = accidentalPreference === 'b' ? FLAT_NOTE_NAMES : SHARP_NOTE_NAMES;
+const EMBEDDED_DIMINISHED_VOICINGS = [
+  {
+    id: 'fallback-voicing-diminished-c',
+    label: 'Diminished Triad',
+    type: 'voicing',
+    quality: 'diminished',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 4, 5, 4, 'x'],
+  },
+  {
+    id: 'fallback-voicing-diminished-a',
+    label: 'Diminished Triad',
+    type: 'voicing',
+    quality: 'diminished',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 1, 2, 1, 'x'],
+  },
+  {
+    id: 'fallback-voicing-diminished-g',
+    label: 'Diminished Triad',
+    type: 'voicing',
+    quality: 'diminished',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 1, 'x', 3, 2, 3],
+  },
+  {
+    id: 'fallback-voicing-diminished-e',
+    label: 'Diminished Triad',
+    type: 'voicing',
+    quality: 'diminished',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 1, 2, 0, 'x', 3],
+  },
+  {
+    id: 'fallback-voicing-diminished-d',
+    label: 'Diminished Triad',
+    type: 'voicing',
+    quality: 'diminished',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 1, 3, 1],
+  },
+];
   return names[normalizeSemitone(semitone)];
 }
 
 function getDegreeSelection() {
   const keyNote = parseSelectedNote();
+function getVoicingCandidatesByQuality(quality) {
+  const matches = catalog.voicings.filter((voicing) => voicing.quality === quality);
+  if (matches.length > 0) {
+    return matches;
+  }
+
+  if (quality === 'diminished') {
+    return EMBEDDED_DIMINISHED_VOICINGS;
+  }
+
+  return [];
+}
   const degreeIndex = getDegreeIndex();
   const degreeLabel = getDegreeLabelByIndex(degreeIndex);
   const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
@@ -198,7 +257,7 @@ function getDegreeSelection() {
   const targetInterval = scaleIntervals[degreeIndex] ?? 0;
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetQuality = degreeQualities[degreeIndex] || 'major';
-  const targetRootName = getNoteNameBySemitone(targetRootSemitone, appState.accidental);
+  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
   const targetSymbol = `${targetRootName}${
     targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
   }`;
