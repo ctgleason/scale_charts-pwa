@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+fixed-scale-frame';
+const APP_VERSION = 'v2026.04.15+ui-cleanup';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -343,16 +343,11 @@ function resolveVoicingForSelection(selection) {
 
 function getSelectionLabel(selection = null, resolvedVoicing = null) {
   if (!selection) {
-    return `${getChordSymbol()} (${getQualityLabel(appState.quality)}) · ${appState.caged} voicing`;
+    return `${getChordSymbol()} (${getDegreeLabelByIndex(0)}) · ${appState.caged} voicing`;
   }
 
   const caged = resolvedVoicing?.caged || appState.caged;
-  const baseLabel = `${selection.targetSymbol} (${getQualityLabel(selection.targetQuality)}) · ${caged} voicing`;
-  if (selection.isTonic) {
-    return baseLabel;
-  }
-
-  return `${baseLabel} · Degree ${selection.degreeLabel} of ${selection.keySymbol}`;
+  return `${selection.targetSymbol} (${selection.degreeLabel}) · ${caged} voicing`;
 }
 
 function updateSelectionTitle(label = getSelectionLabel()) {
@@ -812,7 +807,7 @@ function renderChordFromTemplate(SVGuitarChord) {
       tuning: ['E', 'A', 'D', 'G', 'B', 'E'],
     })
     .chord({
-      title: transposed.title,
+      title: '',
       fingers,
       barres: transposed.barres,
     })
@@ -826,6 +821,8 @@ function renderChordFromTemplate(SVGuitarChord) {
 }
 
 async function renderCharts() {
+  const previousScrollY = window.scrollY;
+
   try {
     await ensureSvguitarScriptLoaded();
     const SVGuitarChord = await waitForChordRenderer();
@@ -855,6 +852,8 @@ async function renderCharts() {
       `Render error: ${error?.message || String(error)}\nwindow.svguitar: ${!!window.svguitar}`,
       true
     );
+  } finally {
+    window.scrollTo({ top: previousScrollY });
   }
 }
 
