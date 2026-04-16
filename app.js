@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+chord-pent-labeling';
+const APP_VERSION = 'v2026.04.15+chord-pent-degree-fix';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -564,12 +564,13 @@ function buildTriadLabelMap(quality) {
 }
 
 function buildChordPentatonicLabelMap(quality) {
+  const scaleIntervals = getScaleIntervalsForQuality(quality);
   const intervals = getPentatonicIntervalsForQuality(quality);
-  const labels = ['1', '2', '3', '4', '5'];
+  const scaleLabelMap = buildDegreeLabelMap(scaleIntervals);
   const labelMap = new Map();
 
-  intervals.forEach((interval, index) => {
-    labelMap.set(interval, labels[index]);
+  intervals.forEach((interval) => {
+    labelMap.set(interval, scaleLabelMap.get(normalizeSemitone(interval)) || '');
   });
 
   return labelMap;
