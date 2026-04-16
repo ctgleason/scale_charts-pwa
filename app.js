@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+prefret-filled-markers';
+const APP_VERSION = 'v2026.04.15+prefret-filled-marker-text-fix';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -961,6 +961,23 @@ function applyTopRowFilledMarkerStyles(chartElement, fingers) {
     const textNode = svg.querySelector(`.string-text-${classIndex}`);
     if (textNode && options.topRowTextColor) {
       textNode.setAttribute('fill', options.topRowTextColor);
+
+      const textValue = options.text || textNode.textContent || '';
+      if (textValue) {
+        textNode.setAttribute('opacity', '0');
+
+        const overlayText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        overlayText.setAttribute('x', textNode.getAttribute('x') || '0');
+        overlayText.setAttribute('y', textNode.getAttribute('y') || '0');
+        overlayText.setAttribute('text-anchor', 'middle');
+        overlayText.setAttribute('dominant-baseline', 'middle');
+        overlayText.setAttribute('font-family', textNode.getAttribute('font-family') || 'Verdana, sans-serif');
+        overlayText.setAttribute('font-size', textNode.getAttribute('font-size') || '24');
+        overlayText.setAttribute('fill', options.topRowTextColor);
+        overlayText.setAttribute('class', `top-row-marker-text top-row-marker-text-${classIndex}`);
+        overlayText.textContent = textValue;
+        svg.appendChild(overlayText);
+      }
     }
   }
 }
