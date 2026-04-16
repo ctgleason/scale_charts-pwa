@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+stable-degree-positions';
+const APP_VERSION = 'v2026.04.15+degree-position-tiebreaks';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -298,24 +298,27 @@ function resolveVoicingForSelection(selection) {
     throw new Error(`No ${selection.targetQuality} voicing templates available.`);
   }
 
-  const sameCagedCandidates = candidatePatterns.filter((pattern) => pattern.caged === appState.caged);
   const hasOpenAnchor = baseTransposed.position === 1;
-  const evaluatePool = sameCagedCandidates.length > 0 ? sameCagedCandidates : candidatePatterns;
 
   let best = null;
 
-  for (const pattern of evaluatePool) {
+  for (const pattern of candidatePatterns) {
     const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
     const distance = Math.abs(transposed.position - baseTransposed.position);
     const usesOpenPosition = transposed.position === 1;
     const openPenalty = !hasOpenAnchor && usesOpenPosition ? 1 : 0;
+    const sameCagedPenalty = pattern.caged === appState.caged ? 0 : 1;
 
     if (
       !best ||
-      openPenalty < best.openPenalty ||
-      (openPenalty === best.openPenalty && distance < best.distance) ||
-      (openPenalty === best.openPenalty &&
-        distance === best.distance &&
+      distance < best.distance ||
+      (distance === best.distance && openPenalty < best.openPenalty) ||
+      (distance === best.distance &&
+        openPenalty === best.openPenalty &&
+        sameCagedPenalty < best.sameCagedPenalty) ||
+      (distance === best.distance &&
+        openPenalty === best.openPenalty &&
+        sameCagedPenalty === best.sameCagedPenalty &&
         transposed.position < best.transposed.position)
     ) {
       best = {
@@ -324,6 +327,7 @@ function resolveVoicingForSelection(selection) {
         caged: pattern.caged,
         distance,
         openPenalty,
+        sameCagedPenalty,
       };
     }
   }
