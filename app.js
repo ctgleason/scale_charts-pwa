@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+open-string-overlay-fallback';
+const APP_VERSION = 'v2026.04.15+open-string-toprow-markers';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -879,12 +879,36 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
           text: marker.text,
           textColor: marker.textColor,
           strokeColor: marker.strokeColor || marker.color,
+          strokeWidth: marker.strokeWidth,
+          topRowFillColor: marker.fillColor,
+          topRowTextColor: marker.textColor,
+          topRowStrokeColor: marker.strokeColor || marker.color,
+          topRowStrokeWidth: marker.strokeWidth,
         },
       ];
     })
     .filter((finger) => finger[1] === 'x' || finger[1] === 0);
 
   const topRowByString = new Map(openAndMute.map((finger) => [finger[0], finger]));
+
+  Array.from(markerMap.values())
+    .filter((marker) => marker.displayFret === 0 && marker.text)
+    .forEach((marker) => {
+      topRowByString.set(marker.stringIndex, [
+        marker.stringIndex,
+        0,
+        {
+          text: marker.text,
+          textColor: marker.textColor,
+          strokeColor: marker.strokeColor || marker.color,
+          strokeWidth: marker.strokeWidth,
+          topRowFillColor: marker.fillColor,
+          topRowTextColor: marker.textColor,
+          topRowStrokeColor: marker.strokeColor || marker.color,
+          topRowStrokeWidth: marker.strokeWidth,
+        },
+      ]);
+    });
 
   preFretMarkerMap.forEach((marker, stringIndex) => {
     if (!marker.text) {
