@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-editor-phase-1';
+const APP_VERSION = 'v2026.04.18+toprow-label-visibility-fix';
 
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions.v1';
 const CAGED_POSITIONS = ['C', 'A', 'G', 'E', 'D'];
@@ -1147,7 +1147,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
   const showChord = appState.overlays['overlay-chord-tones'] !== false;
   const showKeyPent = appState.overlays['overlay-pentatonic'] === true;
-  const showChordPent = appState.overlays['overlay-chord-pentatonic'] === true;
+  const showChordPent =
+    appState.overlays['overlay-chord-pentatonic'] === true && displayedChordQuality !== 'diminished';
   const showScale = appState.overlays['overlay-diatonic'] === true;
 
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
@@ -1257,7 +1258,10 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     if (showChord && isVoicingOpen && chordOverlay && hasOpenChordLabel) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, chordOverlay.color, 1, {
         text: openChordText,
-        textColor: chordOverlay.color,
+        textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
+        fillColor: useDisplayedChordDegreeLabels ? '#ffffff' : chordOverlay.color,
+        strokeColor: '#000000',
+        strokeWidth: 2,
       });
     } else if (allowOpenOverlay && showChordPent && isOpenChordPent && chordPentOverlay) {
       addMarker(stringIndex, 0, openIntervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
@@ -1265,9 +1269,13 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         textColor: '#ffffff',
       });
     } else if (allowOpenOverlay && showKeyPent && isOpenKeyPent && pentOverlay) {
-      addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2);
+      addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2, {
+        textColor: '#ffffff',
+      });
     } else if (allowOpenOverlay && showScale && isOpenScale && !(showKeyPent && isOpenKeyPent) && !(showChordPent && isOpenChordPent) && scaleOverlay) {
-      addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
+      addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3, {
+        textColor: '#ffffff',
+      });
     }
 
     const stringFret = transposed.absoluteFrets[stringTemplateIndex];
