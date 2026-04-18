@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.15+open-string-toprow-markers';
+const APP_VERSION = 'v2026.04.18+prefret-open-overlay-fix';
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -718,6 +718,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     );
     const voicingOpenKey = `${stringIndex}:0`;
     const isVoicingOpen = transposed.absoluteFrets[stringTemplateIndex] === 0;
+    const allowOpenOverlay = isVoicingOpen || diagramPosition === 1;
     const isOpenKeyPent = keyPentSet.has(openIntervalFromKeyRoot);
     const isOpenChordPent = chordPentSet.has(openIntervalFromDisplayedChordRoot);
     const isOpenScale = scaleSet.has(openIntervalFromKeyRoot);
@@ -732,14 +733,14 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         text: openChordText,
         textColor: chordOverlay.color,
       });
-    } else if (showChordPent && isOpenChordPent && chordPentOverlay) {
+    } else if (allowOpenOverlay && showChordPent && isOpenChordPent && chordPentOverlay) {
       addMarker(stringIndex, 0, openIntervalFromDisplayedChordRoot, chordPentOverlay.color, 2, {
         text: chordPentLabels.get(openIntervalFromDisplayedChordRoot) || '',
         textColor: '#ffffff',
       });
-    } else if (showKeyPent && isOpenKeyPent && pentOverlay) {
+    } else if (allowOpenOverlay && showKeyPent && isOpenKeyPent && pentOverlay) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, pentOverlay.color, 2);
-    } else if (showScale && isOpenScale && !(showKeyPent && isOpenKeyPent) && !(showChordPent && isOpenChordPent) && scaleOverlay) {
+    } else if (allowOpenOverlay && showScale && isOpenScale && !(showKeyPent && isOpenKeyPent) && !(showChordPent && isOpenChordPent) && scaleOverlay) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, scaleOverlay.color, 3);
     }
 
@@ -912,11 +913,6 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
   preFretMarkerMap.forEach((marker, stringIndex) => {
     if (!marker.text) {
-      return;
-    }
-
-    const existing = topRowByString.get(stringIndex);
-    if (existing && existing[1] === 0) {
       return;
     }
 
