@@ -19,7 +19,11 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+prefret-open-overlay-fix';
+const APP_VERSION = 'v2026.04.18+progression-editor-phase-1';
+
+const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions.v1';
+const CAGED_POSITIONS = ['C', 'A', 'G', 'E', 'D'];
+const PREVIEW_LEAD_OPTIONS = ['none', 'eighth', 'quarter', 'half'];
 
 function setDiagnostics(text, isError = false) {
   const node = document.getElementById('debug-status');
@@ -147,7 +151,529 @@ const appState = {
   caged: 'C',
   degree: 1,
   overlays: {},
+  ui: {
+    progressionPanelOpen: false,
+  },
+  progressions: [],
+  selectedProgressionId: null,
+  progressionDraft: null,
 };
+
+function createId(prefix = 'id') {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createDefaultProgressionStep() {
+  return {
+    id: createId('step'),
+    degree: 1,
+    root: 'A',
+    accidental: '',
+    quality: 'major',
+    useDiatonicChord: true,
+    beats: 4,
+    cagedArea: 'C',
+  };
+}
+
+function createDefaultProgression() {
+  return {
+    id: createId('prog'),
+    name: 'New progression',
+    keyRoot: 'A',
+    keyAccidental: '',
+    keyQuality: 'major',
+    tempo: 100,
+    countInBeats: 4,
+    previewLead: 'none',
+    steps: [createDefaultProgressionStep()],
+  };
+}
+
+function sanitizeProgressionStep(step = {}) {
+  return {
+    id: typeof step.id === 'string' && step.id ? step.id : createId('step'),
+    degree: Math.min(7, Math.max(1, Number(step.degree) || 1)),
+    root: NATURAL_NOTE_TO_SEMITONE[step.root] !== undefined ? step.root : 'A',
+    accidental: normalizeAccidental(step.accidental),
+    quality: step.quality === 'minor' || step.quality === 'diminished' ? step.quality : 'major',
+    useDiatonicChord: step.useDiatonicChord !== false,
+    beats: Math.min(16, Math.max(1, Number(step.beats) || 4)),
+    cagedArea: CAGED_POSITIONS.includes(step.cagedArea) ? step.cagedArea : 'C',
+  };
+}
+
+function sanitizeProgression(progression = {}) {
+  const steps = Array.isArray(progression.steps) && progression.steps.length > 0
+    ? progression.steps.map((step) => sanitizeProgressionStep(step))
+    : [createDefaultProgressionStep()];
+
+  return {
+    id: typeof progression.id === 'string' && progression.id ? progression.id : createId('prog'),
+    name: typeof progression.name === 'string' && progression.name.trim() ? progression.name.trim() : 'Untitled progression',
+    keyRoot: NATURAL_NOTE_TO_SEMITONE[progression.keyRoot] !== undefined ? progression.keyRoot : 'A',
+    keyAccidental: normalizeAccidental(progression.keyAccidental),
+    keyQuality: progression.keyQuality === 'minor' ? 'minor' : 'major',
+    tempo: Math.min(240, Math.max(30, Number(progression.tempo) || 100)),
+    countInBeats: Math.min(8, Math.max(0, Number(progression.countInBeats) || 0)),
+    previewLead: PREVIEW_LEAD_OPTIONS.includes(progression.previewLead) ? progression.previewLead : 'none',
+    steps,
+  };
+}
+
+function cloneProgression(progression) {
+  return JSON.parse(JSON.stringify(progression));
+}
+
+function getSelectedProgression() {
+  return appState.progressions.find((progression) => progression.id === appState.selectedProgressionId) || null;
+}
+
+function saveProgressionsToStorage() {
+  try {
+    localStorage.setItem(PROGRESSION_STORAGE_KEY, JSON.stringify(appState.progressions));
+  } catch (error) {
+    console.warn('Failed to save progressions:', error);
+  }
+}
+
+function loadProgressionsFromStorage() {
+  try {
+    const raw = localStorage.getItem(PROGRESSION_STORAGE_KEY);
+    if (!raw) {
+      const initial = createDefaultProgression();
+      appState.progressions = [initial];
+      appState.selectedProgressionId = initial.id;
+      appState.progressionDraft = cloneProgression(initial);
+      saveProgressionsToStorage();
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    const sanitized = Array.isArray(parsed) ? parsed.map((progression) => sanitizeProgression(progression)) : [];
+    appState.progressions = sanitized.length > 0 ? sanitized : [createDefaultProgression()];
+    appState.selectedProgressionId = appState.progressions[0].id;
+    appState.progressionDraft = cloneProgression(appState.progressions[0]);
+  } catch (error) {
+    console.warn('Failed to load progressions:', error);
+    const fallback = createDefaultProgression();
+    appState.progressions = [fallback];
+    appState.selectedProgressionId = fallback.id;
+    appState.progressionDraft = cloneProgression(fallback);
+  }
+}
+
+function formatProgressionSummary(progression) {
+  return `${progression.keyRoot}${progression.keyAccidental || ''} ${getQualityLabel(progression.keyQuality)} · ${progression.steps.length} step${progression.steps.length === 1 ? '' : 's'}`;
+}
+
+function setProgressionDraft(progression) {
+  appState.progressionDraft = cloneProgression(sanitizeProgression(progression));
+}
+
+function selectProgression(progressionId) {
+  const progression = appState.progressions.find((item) => item.id === progressionId);
+  if (!progression) {
+    return;
+  }
+
+  appState.selectedProgressionId = progression.id;
+  setProgressionDraft(progression);
+  renderProgressionPanel();
+}
+
+function updateProgressionDraftField(field, value) {
+  if (!appState.progressionDraft) {
+    return;
+  }
+
+  appState.progressionDraft[field] = value;
+}
+
+function updateProgressionStep(stepId, field, value) {
+  if (!appState.progressionDraft) {
+    return;
+  }
+
+  const step = appState.progressionDraft.steps.find((item) => item.id === stepId);
+  if (!step) {
+    return;
+  }
+
+  step[field] = value;
+}
+
+function addProgressionStep() {
+  if (!appState.progressionDraft) {
+    return;
+  }
+
+  appState.progressionDraft.steps.push(createDefaultProgressionStep());
+  renderProgressionPanel();
+}
+
+function removeProgressionStep(stepId) {
+  if (!appState.progressionDraft || appState.progressionDraft.steps.length <= 1) {
+    return;
+  }
+
+  appState.progressionDraft.steps = appState.progressionDraft.steps.filter((step) => step.id !== stepId);
+  renderProgressionPanel();
+}
+
+function createNewProgression() {
+  const progression = createDefaultProgression();
+  appState.progressions.unshift(progression);
+  appState.selectedProgressionId = progression.id;
+  setProgressionDraft(progression);
+  saveProgressionsToStorage();
+  renderProgressionPanel();
+}
+
+function saveProgressionDraft() {
+  if (!appState.progressionDraft) {
+    return;
+  }
+
+  const sanitized = sanitizeProgression(appState.progressionDraft);
+  const existingIndex = appState.progressions.findIndex((progression) => progression.id === sanitized.id);
+
+  if (existingIndex >= 0) {
+    appState.progressions.splice(existingIndex, 1, sanitized);
+  } else {
+    appState.progressions.unshift(sanitized);
+  }
+
+  appState.selectedProgressionId = sanitized.id;
+  setProgressionDraft(sanitized);
+  saveProgressionsToStorage();
+  renderProgressionPanel();
+}
+
+function deleteSelectedProgression() {
+  if (appState.progressions.length <= 1 || !appState.selectedProgressionId) {
+    return;
+  }
+
+  appState.progressions = appState.progressions.filter(
+    (progression) => progression.id !== appState.selectedProgressionId
+  );
+
+  const next = appState.progressions[0] || createDefaultProgression();
+  if (appState.progressions.length === 0) {
+    appState.progressions = [next];
+  }
+  appState.selectedProgressionId = next.id;
+  setProgressionDraft(next);
+  saveProgressionsToStorage();
+  renderProgressionPanel();
+}
+
+function buildDegreeOptionsMarkup(selectedValue) {
+  return DEGREE_LABELS.map((label, index) => {
+    const value = index + 1;
+    return `<option value="${value}"${value === selectedValue ? ' selected' : ''}>${label}</option>`;
+  }).join('');
+}
+
+function buildCagedOptionsMarkup(selectedValue) {
+  return CAGED_POSITIONS.map((position) =>
+    `<option value="${position}"${position === selectedValue ? ' selected' : ''}>${position}</option>`
+  ).join('');
+}
+
+function renderProgressionLibrary() {
+  const container = document.getElementById('progression-list');
+  if (!container) {
+    return;
+  }
+
+  if (appState.progressions.length === 0) {
+    container.innerHTML = '<p class="progression-list-empty">No saved progressions yet.</p>';
+    return;
+  }
+
+  container.innerHTML = appState.progressions
+    .map(
+      (progression) => `
+        <button type="button" class="progression-item${progression.id === appState.selectedProgressionId ? ' is-active' : ''}" data-progression-id="${progression.id}">
+          <span class="progression-item-title">${progression.name}</span>
+          <span class="progression-item-meta">${formatProgressionSummary(progression)}</span>
+        </button>
+      `
+    )
+    .join('');
+}
+
+function renderProgressionSteps() {
+  const container = document.getElementById('progression-steps');
+  const draft = appState.progressionDraft;
+  if (!container || !draft) {
+    return;
+  }
+
+  if (!Array.isArray(draft.steps) || draft.steps.length === 0) {
+    container.innerHTML = '<p class="progression-steps-empty">Add at least one chord step.</p>';
+    return;
+  }
+
+  container.innerHTML = draft.steps
+    .map(
+      (step, index) => `
+        <article class="progression-step-card" data-step-id="${step.id}">
+          <div class="panel-subheading-row">
+            <h3>Step ${index + 1}</h3>
+          </div>
+          <div class="progression-step-grid">
+            <label class="control-field">
+              <span>Degree</span>
+              <select data-step-field="degree">
+                ${buildDegreeOptionsMarkup(step.degree)}
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Root override</span>
+              <select data-step-field="root">
+                ${Object.keys(NATURAL_NOTE_TO_SEMITONE)
+                  .map((note) => `<option value="${note}"${note === step.root ? ' selected' : ''}>${note}</option>`)
+                  .join('')}
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Accidental</span>
+              <select data-step-field="accidental">
+                <option value=""${step.accidental === '' ? ' selected' : ''}>Natural</option>
+                <option value="#"${step.accidental === '#' ? ' selected' : ''}>Sharp (#)</option>
+                <option value="b"${step.accidental === 'b' ? ' selected' : ''}>Flat (b)</option>
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Quality override</span>
+              <select data-step-field="quality">
+                <option value="major"${step.quality === 'major' ? ' selected' : ''}>Major</option>
+                <option value="minor"${step.quality === 'minor' ? ' selected' : ''}>Minor</option>
+                <option value="diminished"${step.quality === 'diminished' ? ' selected' : ''}>Diminished</option>
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Duration (beats)</span>
+              <input data-step-field="beats" type="number" min="1" max="16" step="1" value="${step.beats}" />
+            </label>
+
+            <label class="control-field">
+              <span>I-position area</span>
+              <select data-step-field="cagedArea">
+                ${buildCagedOptionsMarkup(step.cagedArea)}
+              </select>
+            </label>
+          </div>
+          <label class="step-toggle-row">
+            <input data-step-field="useDiatonicChord" type="checkbox"${step.useDiatonicChord ? ' checked' : ''} />
+            <span>Use diatonic chord from key</span>
+          </label>
+          <div class="step-card-actions">
+            <button type="button" class="ghost-btn danger-btn" data-step-delete="${step.id}">Remove step</button>
+          </div>
+        </article>
+      `
+    )
+    .join('');
+}
+
+function syncProgressionEditorFields() {
+  const draft = appState.progressionDraft;
+  if (!draft) {
+    return;
+  }
+
+  const assignments = [
+    ['progression-name', draft.name],
+    ['progression-root-note', draft.keyRoot],
+    ['progression-accidental', draft.keyAccidental],
+    ['progression-quality', draft.keyQuality],
+    ['progression-tempo', String(draft.tempo)],
+    ['progression-count-in', String(draft.countInBeats)],
+    ['progression-preview-lead', draft.previewLead],
+  ];
+
+  assignments.forEach(([id, value]) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.value = value;
+    }
+  });
+}
+
+function renderProgressionPanel() {
+  renderProgressionLibrary();
+  syncProgressionEditorFields();
+  renderProgressionSteps();
+
+  const deleteButton = document.getElementById('progression-delete');
+  if (deleteButton) {
+    deleteButton.disabled = appState.progressions.length <= 1;
+  }
+}
+
+function setProgressionPanelOpen(isOpen) {
+  appState.ui.progressionPanelOpen = Boolean(isOpen);
+  const panel = document.getElementById('progression-panel');
+  const toggle = document.getElementById('progression-menu-toggle');
+  if (panel) {
+    panel.hidden = !isOpen;
+    panel.classList.toggle('is-hidden', !isOpen);
+  }
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
+  }
+}
+
+function setupProgressionControls() {
+  const toggle = document.getElementById('progression-menu-toggle');
+  const closeButton = document.getElementById('progression-close');
+  const newButton = document.getElementById('progression-new');
+  const saveButton = document.getElementById('progression-save');
+  const deleteButton = document.getElementById('progression-delete');
+  const addStepButton = document.getElementById('progression-add-step');
+  const listContainer = document.getElementById('progression-list');
+  const stepsContainer = document.getElementById('progression-steps');
+
+  const root = document.getElementById('progression-root-note');
+  const accidental = document.getElementById('progression-accidental');
+  const quality = document.getElementById('progression-quality');
+  const name = document.getElementById('progression-name');
+  const tempo = document.getElementById('progression-tempo');
+  const countIn = document.getElementById('progression-count-in');
+  const previewLead = document.getElementById('progression-preview-lead');
+
+  if (
+    !toggle ||
+    !closeButton ||
+    !newButton ||
+    !saveButton ||
+    !deleteButton ||
+    !addStepButton ||
+    !listContainer ||
+    !stepsContainer ||
+    !root ||
+    !accidental ||
+    !quality ||
+    !name ||
+    !tempo ||
+    !countIn ||
+    !previewLead
+  ) {
+    return;
+  }
+
+  toggle.addEventListener('click', () => {
+    setProgressionPanelOpen(!appState.ui.progressionPanelOpen);
+  });
+
+  closeButton.addEventListener('click', () => {
+    setProgressionPanelOpen(false);
+  });
+
+  newButton.addEventListener('click', () => {
+    createNewProgression();
+  });
+
+  saveButton.addEventListener('click', () => {
+    saveProgressionDraft();
+  });
+
+  deleteButton.addEventListener('click', () => {
+    deleteSelectedProgression();
+  });
+
+  addStepButton.addEventListener('click', () => {
+    addProgressionStep();
+  });
+
+  listContainer.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-progression-id]');
+    if (!button) {
+      return;
+    }
+
+    selectProgression(button.dataset.progressionId);
+  });
+
+  const draftFieldBindings = [
+    [name, 'name', (value) => value],
+    [root, 'keyRoot', (value) => value],
+    [accidental, 'keyAccidental', (value) => normalizeAccidental(value)],
+    [quality, 'keyQuality', (value) => (value === 'minor' ? 'minor' : 'major')],
+    [tempo, 'tempo', (value) => Math.min(240, Math.max(30, Number(value) || 100))],
+    [countIn, 'countInBeats', (value) => Math.min(8, Math.max(0, Number(value) || 0))],
+    [previewLead, 'previewLead', (value) => (PREVIEW_LEAD_OPTIONS.includes(value) ? value : 'none')],
+  ];
+
+  draftFieldBindings.forEach(([node, field, transform]) => {
+    node.addEventListener('input', () => {
+      updateProgressionDraftField(field, transform(node.value));
+    });
+    node.addEventListener('change', () => {
+      updateProgressionDraftField(field, transform(node.value));
+      renderProgressionPanel();
+    });
+  });
+
+  stepsContainer.addEventListener('input', (event) => {
+    const target = event.target;
+    const card = target.closest('[data-step-id]');
+    if (!card || !target.dataset.stepField) {
+      return;
+    }
+
+    const { stepField } = target.dataset;
+    const stepId = card.dataset.stepId;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const normalizedValue =
+      stepField === 'degree' || stepField === 'beats'
+        ? Number(value)
+        : stepField === 'accidental'
+          ? normalizeAccidental(value)
+          : value;
+    updateProgressionStep(stepId, stepField, normalizedValue);
+  });
+
+  stepsContainer.addEventListener('change', (event) => {
+    const target = event.target;
+    const card = target.closest('[data-step-id]');
+    if (!card || !target.dataset.stepField) {
+      return;
+    }
+
+    const { stepField } = target.dataset;
+    const stepId = card.dataset.stepId;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const normalizedValue =
+      stepField === 'degree' || stepField === 'beats'
+        ? Number(value)
+        : stepField === 'accidental'
+          ? normalizeAccidental(value)
+          : value;
+    updateProgressionStep(stepId, stepField, normalizedValue);
+    renderProgressionPanel();
+  });
+
+  stepsContainer.addEventListener('click', (event) => {
+    const deleteStepButton = event.target.closest('[data-step-delete]');
+    if (!deleteStepButton) {
+      return;
+    }
+
+    removeProgressionStep(deleteStepButton.dataset.stepDelete);
+  });
+
+  setProgressionPanelOpen(appState.ui.progressionPanelOpen);
+  renderProgressionPanel();
+}
 
 function parseSelectedNote(state = appState) {
   return parseNote(state.root, state.accidental);
@@ -1191,7 +1717,9 @@ function registerServiceWorker() {
 
 async function boot() {
   await loadTemplates();
+  loadProgressionsFromStorage();
   setupControls();
+  setupProgressionControls();
   updateVersionLabel();
   populateOverlayToggles();
   updateSelectionTitle();

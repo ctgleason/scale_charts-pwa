@@ -34,6 +34,26 @@ header p {
   color: #94a3b8;
 }
 
+.header-actions {
+  margin-top: 0.85rem;
+}
+
+.menu-toggle,
+.ghost-btn {
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghost-btn.danger-btn {
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
 .app-version {
   margin-top: 0.3rem;
   font-size: 0.82rem;
@@ -51,6 +71,133 @@ header p {
   margin-top: 0;
   font-size: 1.05rem;
   color: #0f172a;
+}
+
+.panel h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+
+.panel-heading-row,
+.panel-subheading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.panel-subheading-row {
+  margin-bottom: 0.75rem;
+}
+
+.progression-panel.is-hidden {
+  display: none;
+}
+
+.progression-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.progression-library,
+.progression-editor {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.progression-list,
+.progression-steps {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.progression-list-empty,
+.progression-steps-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.progression-item,
+.progression-step-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.progression-item {
+  text-align: left;
+  cursor: pointer;
+}
+
+.progression-item.is-active {
+  border-color: #0f172a;
+  background: #f1f5f9;
+}
+
+.progression-item-title {
+  display: block;
+  font-weight: 700;
+}
+
+.progression-item-meta {
+  display: block;
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.progression-meta-grid {
+  margin-bottom: 0.4rem;
+}
+
+.control-field input,
+.control-field select {
+  border: 1px solid #94a3b8;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.progression-steps-heading {
+  margin-top: 0.5rem;
+}
+
+.progression-step-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+}
+
+.step-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.step-card-actions {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 800px) {
+  .progression-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .controls-grid {

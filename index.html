@@ -18,7 +18,102 @@
         <h1>Scale Charts</h1>
         <p>Choose a chord and CAGED voicing</p>
         <p id="app-version" class="app-version" aria-live="polite"></p>
+        <div class="header-actions">
+          <button id="progression-menu-toggle" type="button" class="menu-toggle" aria-expanded="false" aria-controls="progression-panel">
+            Progressions
+          </button>
+        </div>
       </header>
+
+      <section id="progression-panel" class="panel progression-panel is-hidden" aria-label="Progression manager" hidden>
+        <div class="panel-heading-row">
+          <h2>Progressions</h2>
+          <button id="progression-close" type="button" class="ghost-btn">Close</button>
+        </div>
+
+        <div class="progression-grid">
+          <section class="progression-library" aria-label="Saved progressions">
+            <div class="panel-subheading-row">
+              <h3>Library</h3>
+              <button id="progression-new" type="button" class="ghost-btn">New</button>
+            </div>
+            <div id="progression-list" class="progression-list"></div>
+          </section>
+
+          <section class="progression-editor" aria-label="Progression editor">
+            <div class="panel-subheading-row">
+              <h3>Editor</h3>
+              <div class="editor-actions">
+                <button id="progression-save" type="button" class="ghost-btn">Save</button>
+                <button id="progression-delete" type="button" class="ghost-btn danger-btn">Delete</button>
+              </div>
+            </div>
+
+            <div class="controls-grid progression-meta-grid">
+              <label class="control-field">
+                <span>Name</span>
+                <input id="progression-name" type="text" placeholder="My progression" />
+              </label>
+
+              <label class="control-field">
+                <span>Key root</span>
+                <select id="progression-root-note">
+                  <option>A</option>
+                  <option>B</option>
+                  <option>C</option>
+                  <option>D</option>
+                  <option>E</option>
+                  <option>F</option>
+                  <option>G</option>
+                </select>
+              </label>
+
+              <label class="control-field">
+                <span>Accidental</span>
+                <select id="progression-accidental">
+                  <option value="">Natural</option>
+                  <option value="#">Sharp (#)</option>
+                  <option value="b">Flat (b)</option>
+                </select>
+              </label>
+
+              <label class="control-field">
+                <span>Key quality</span>
+                <select id="progression-quality">
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
+                </select>
+              </label>
+
+              <label class="control-field">
+                <span>Tempo</span>
+                <input id="progression-tempo" type="number" min="30" max="240" step="1" value="100" />
+              </label>
+
+              <label class="control-field">
+                <span>Count-in beats</span>
+                <input id="progression-count-in" type="number" min="0" max="8" step="1" value="4" />
+              </label>
+
+              <label class="control-field">
+                <span>Preview lead</span>
+                <select id="progression-preview-lead">
+                  <option value="none">None</option>
+                  <option value="eighth">Eighth note</option>
+                  <option value="quarter">Quarter note</option>
+                  <option value="half">Half note</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="panel-subheading-row progression-steps-heading">
+              <h3>Chord steps</h3>
+              <button id="progression-add-step" type="button" class="ghost-btn">Add step</button>
+            </div>
+            <div id="progression-steps" class="progression-steps"></div>
+          </section>
+        </div>
+      </section>
 
       <section class="panel">
         <h2>Chord Options</h2>
