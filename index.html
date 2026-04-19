@@ -35,9 +35,14 @@
           <section class="progression-library" aria-label="Saved progressions">
             <div class="panel-subheading-row">
               <h3>Library</h3>
-              <button id="progression-new" type="button" class="ghost-btn">New</button>
+              <div class="editor-actions">
+                <button id="progression-export" type="button" class="ghost-btn">Export</button>
+                <button id="progression-import" type="button" class="ghost-btn">Import</button>
+                <button id="progression-new" type="button" class="ghost-btn">New</button>
+              </div>
             </div>
             <div id="progression-list" class="progression-list"></div>
+            <input id="progression-import-file" type="file" accept="application/json,.json" hidden />
           </section>
 
           <section class="progression-editor" aria-label="Progression editor">

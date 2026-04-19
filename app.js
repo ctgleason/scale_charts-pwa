@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+persistent-progressions';
+const APP_VERSION = 'v2026.04.18+progression-import-export';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -235,11 +235,7 @@ function getSelectedProgression() {
 
 function saveProgressionsToStorage() {
   try {
-    const envelope = {
-      schemaVersion: PROGRESSION_SCHEMA_VERSION,
-      savedAt: new Date().toISOString(),
-      progressions: appState.progressions,
-    };
+    const envelope = buildProgressionEnvelope(appState.progressions);
     localStorage.setItem(PROGRESSION_STORAGE_KEY, JSON.stringify(envelope));
   } catch (error) {
     console.warn('Failed to save progressions:', error);
@@ -434,6 +430,84 @@ function deleteSelectedProgression() {
   renderProgressionPanel();
 }
 
+function buildProgressionEnvelope(progressions = appState.progressions) {
+  return {
+    schemaVersion: PROGRESSION_SCHEMA_VERSION,
+    savedAt: new Date().toISOString(),
+    progressions,
+  };
+}
+
+function exportProgressionsAsJson() {
+  try {
+    const envelope = buildProgressionEnvelope(appState.progressions);
+    const payload = JSON.stringify(envelope, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const objectUrl = URL.createObjectURL(blob);
+    const dateStamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = `scale-charts-progressions-${dateStamp}.json`;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.warn('Failed to export progressions:', error);
+    window.alert('Could not export progressions.');
+  }
+}
+
+function normalizeImportedProgressionsPayload(parsedPayload) {
+  if (Array.isArray(parsedPayload)) {
+    return {
+      schemaVersion: 1,
+      progressions: parsedPayload,
+    };
+  }
+
+  if (
+    parsedPayload &&
+    typeof parsedPayload === 'object' &&
+    !Array.isArray(parsedPayload) &&
+    Array.isArray(parsedPayload.progressions)
+  ) {
+    return {
+      schemaVersion: Number(parsedPayload.schemaVersion) || 1,
+      progressions: parsedPayload.progressions,
+    };
+  }
+
+  return null;
+}
+
+function importProgressionsFromJsonText(jsonText) {
+  const parsed = JSON.parse(jsonText);
+  const normalized = normalizeImportedProgressionsPayload(parsed);
+  if (!normalized) {
+    throw new Error('Invalid progression JSON format.');
+  }
+
+  const migrated = migrateProgressions(normalized.progressions, normalized.schemaVersion);
+  const sanitized = migrated.map((progression) => sanitizeProgression(progression));
+  if (sanitized.length === 0) {
+    throw new Error('No valid progressions found in imported file.');
+  }
+
+  appState.progressions = sanitized;
+  appState.selectedProgressionId = sanitized[0].id;
+  setProgressionDraft(sanitized[0]);
+  saveProgressionsToStorage();
+  renderProgressionPanel();
+}
+
+async function importProgressionsFromFile(file) {
+  if (!file) {
+    return;
+  }
+
+  const text = await file.text();
+  importProgressionsFromJsonText(text);
+}
+
 function buildDegreeOptionsMarkup(selectedValue) {
   return DEGREE_LABELS.map((label, index) => {
     const value = index + 1;
@@ -600,6 +674,9 @@ function setProgressionPanelOpen(isOpen) {
 function setupProgressionControls() {
   const toggle = document.getElementById('progression-menu-toggle');
   const closeButton = document.getElementById('progression-close');
+  const exportButton = document.getElementById('progression-export');
+  const importButton = document.getElementById('progression-import');
+  const importFileInput = document.getElementById('progression-import-file');
   const newButton = document.getElementById('progression-new');
   const saveButton = document.getElementById('progression-save');
   const deleteButton = document.getElementById('progression-delete');
@@ -618,6 +695,9 @@ function setupProgressionControls() {
   if (
     !toggle ||
     !closeButton ||
+    !exportButton ||
+    !importButton ||
+    !importFileInput ||
     !newButton ||
     !saveButton ||
     !deleteButton ||
@@ -641,6 +721,30 @@ function setupProgressionControls() {
 
   closeButton.addEventListener('click', () => {
     setProgressionPanelOpen(false);
+  });
+
+  exportButton.addEventListener('click', () => {
+    exportProgressionsAsJson();
+  });
+
+  importButton.addEventListener('click', () => {
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener('change', async () => {
+    const [file] = importFileInput.files || [];
+    if (!file) {
+      return;
+    }
+
+    try {
+      await importProgressionsFromFile(file);
+    } catch (error) {
+      console.warn('Failed to import progressions:', error);
+      window.alert('Could not import progressions. Please select a valid exported JSON file.');
+    } finally {
+      importFileInput.value = '';
+    }
   });
 
   newButton.addEventListener('click', () => {
