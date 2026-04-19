@@ -19,9 +19,13 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+toprow-label-visibility-fix';
+const APP_VERSION = 'v2026.04.18+persistent-progressions';
 
-const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions.v1';
+// Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
+const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
+const PROGRESSION_SCHEMA_VERSION = 1;
+// Legacy key used before versioned envelope. Data is migrated on first load.
+const PROGRESSION_LEGACY_KEY = 'scale-charts.progressions.v1';
 const CAGED_POSITIONS = ['C', 'A', 'G', 'E', 'D'];
 const PREVIEW_LEAD_OPTIONS = ['none', 'eighth', 'quarter', 'half'];
 
@@ -231,35 +235,96 @@ function getSelectedProgression() {
 
 function saveProgressionsToStorage() {
   try {
-    localStorage.setItem(PROGRESSION_STORAGE_KEY, JSON.stringify(appState.progressions));
+    const envelope = {
+      schemaVersion: PROGRESSION_SCHEMA_VERSION,
+      savedAt: new Date().toISOString(),
+      progressions: appState.progressions,
+    };
+    localStorage.setItem(PROGRESSION_STORAGE_KEY, JSON.stringify(envelope));
   } catch (error) {
     console.warn('Failed to save progressions:', error);
   }
 }
 
+/**
+ * Apply any model migrations needed when loading data saved by an older schema version.
+ * Each migration is a function (progressions) => progressions.
+ * Add new migrations to the array in ascending order as the schema evolves.
+ */
+const PROGRESSION_MIGRATIONS = [
+  // Schema v1 → v1: no-op (first version; here as a template for future migrations)
+  // Future example:
+  // (progressions) => progressions.map((p) => ({ ...p, newField: p.newField ?? defaultValue })),
+];
+
+function migrateProgressions(progressions, fromVersion) {
+  let migrated = progressions;
+  for (let version = fromVersion; version < PROGRESSION_SCHEMA_VERSION; version += 1) {
+    const migration = PROGRESSION_MIGRATIONS[version - 1];
+    if (typeof migration === 'function') {
+      migrated = migration(migrated);
+    }
+  }
+
+  return migrated;
+}
+
 function loadProgressionsFromStorage() {
   try {
-    const raw = localStorage.getItem(PROGRESSION_STORAGE_KEY);
-    if (!raw) {
-      const initial = createDefaultProgression();
-      appState.progressions = [initial];
-      appState.selectedProgressionId = initial.id;
-      appState.progressionDraft = cloneProgression(initial);
-      saveProgressionsToStorage();
-      return;
+    // Check stable key first
+    let raw = localStorage.getItem(PROGRESSION_STORAGE_KEY);
+    let fromVersion = PROGRESSION_SCHEMA_VERSION;
+    let rawProgressions = null;
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Versioned envelope (current format)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.progressions)) {
+        fromVersion = Number(parsed.schemaVersion) || 1;
+        rawProgressions = parsed.progressions;
+      } else if (Array.isArray(parsed)) {
+        // Old format: bare array stored under stable key (shouldn't normally happen)
+        fromVersion = 1;
+        rawProgressions = parsed;
+      }
+    } else {
+      // Try legacy key (data saved before versioned envelope was added)
+      const legacyRaw = localStorage.getItem(PROGRESSION_LEGACY_KEY);
+      if (legacyRaw) {
+        const legacyParsed = JSON.parse(legacyRaw);
+        if (Array.isArray(legacyParsed)) {
+          fromVersion = 1;
+          rawProgressions = legacyParsed;
+          console.info('Migrated progressions from legacy storage key.');
+        }
+      }
     }
 
-    const parsed = JSON.parse(raw);
-    const sanitized = Array.isArray(parsed) ? parsed.map((progression) => sanitizeProgression(progression)) : [];
-    appState.progressions = sanitized.length > 0 ? sanitized : [createDefaultProgression()];
+    if (rawProgressions) {
+      const migrated = migrateProgressions(rawProgressions, fromVersion);
+      const sanitized = migrated.map((progression) => sanitizeProgression(progression));
+      appState.progressions = sanitized.length > 0 ? sanitized : [createDefaultProgression()];
+    } else {
+      appState.progressions = [createDefaultProgression()];
+    }
+
     appState.selectedProgressionId = appState.progressions[0].id;
     appState.progressionDraft = cloneProgression(appState.progressions[0]);
+
+    // Always write back with current envelope format (upgrades legacy data)
+    saveProgressionsToStorage();
+
+    // Clean up legacy key after successful migration
+    try {
+      localStorage.removeItem(PROGRESSION_LEGACY_KEY);
+    } catch {}
   } catch (error) {
     console.warn('Failed to load progressions:', error);
     const fallback = createDefaultProgression();
     appState.progressions = [fallback];
     appState.selectedProgressionId = fallback.id;
     appState.progressionDraft = cloneProgression(fallback);
+    saveProgressionsToStorage();
   }
 }
 
