@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+preview-fade-in';
+const APP_VERSION = 'v2026.04.18+preview-fade-visible-and-step-label';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -517,7 +517,7 @@ function getPreviewDurationMs(progression) {
 }
 
 function shouldFadePreview(progression) {
-  return Boolean(progression && progression.previewLead && progression.previewLead !== 'none');
+  return Boolean(progression && Array.isArray(progression.steps) && progression.steps.length > 1);
 }
 
 async function showPreviewFadeForStep(progression, step) {
@@ -1687,7 +1687,12 @@ function getSelectionBeatsSuffix() {
     return '';
   }
 
-  return ` (${beats} beat${beats === 1 ? '' : 's'})`;
+  const stepNumber = Number(appState.selectionContext.stepIndex) + 1;
+  if (!Number.isFinite(stepNumber) || stepNumber <= 0) {
+    return ` (${beats} beat${beats === 1 ? '' : 's'})`;
+  }
+
+  return ` (Step ${stepNumber}: ${beats} beat${beats === 1 ? '' : 's'})`;
 }
 
 function updateSelectionTitle(label = getSelectionLabel()) {
