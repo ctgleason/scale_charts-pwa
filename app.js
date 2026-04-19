@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-import-export';
+const APP_VERSION = 'v2026.04.18+progression-transport-metronome';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -161,6 +161,14 @@ const appState = {
   progressions: [],
   selectedProgressionId: null,
   progressionDraft: null,
+  transport: {
+    status: 'stopped',
+    activeProgressionId: null,
+    currentStepIndex: -1,
+    currentBeatInStep: 0,
+    countInRemaining: 0,
+    timerId: null,
+  },
 };
 
 function createId(prefix = 'id') {
@@ -336,6 +344,310 @@ function loadProgressionsFromStorage() {
 
 function formatProgressionSummary(progression) {
   return `${progression.keyRoot}${progression.keyAccidental || ''} ${getQualityLabel(progression.keyQuality)} · ${progression.steps.length} step${progression.steps.length === 1 ? '' : 's'}`;
+}
+
+function getProgressionById(progressionId) {
+  return appState.progressions.find((progression) => progression.id === progressionId) || null;
+}
+
+function getDegreeSelectionForState(state) {
+  const keyNote = parseNote(state.root, state.accidental);
+  const degreeIndex = Math.min(6, Math.max(0, Math.trunc(Number(state.degree) || 1) - 1));
+  const degreeLabel = getDegreeLabelByIndex(degreeIndex);
+  const scaleIntervals = getScaleIntervalsForQuality(state.quality);
+  const degreeQualities = DEGREE_TRIAD_QUALITIES[state.quality] || DEGREE_TRIAD_QUALITIES.major;
+  const targetInterval = scaleIntervals[degreeIndex] ?? 0;
+  const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
+  const targetQuality = degreeQualities[degreeIndex] || 'major';
+  const targetRootName = getNoteNameBySemitone(targetRootSemitone, state.accidental);
+  const targetSymbol = `${targetRootName}${
+    targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
+  }`;
+
+  return {
+    keyRootSemitone: keyNote.semitone,
+    keyQuality: state.quality,
+    keySymbol: `${keyNote.preferredName}${state.quality === 'minor' ? 'm' : ''}`,
+    degreeIndex,
+    degreeLabel,
+    isTonic: degreeIndex === 0,
+    targetRootSemitone,
+    targetQuality,
+    targetSymbol,
+  };
+}
+
+function resolveProgressionStepState(progression, step) {
+  const keyState = {
+    root: progression.keyRoot,
+    accidental: progression.keyAccidental,
+    quality: progression.keyQuality,
+    degree: step.degree,
+  };
+  const diatonicSelection = getDegreeSelectionForState(keyState);
+
+  return {
+    root: step.useDiatonicChord ? getNoteNameBySemitone(diatonicSelection.targetRootSemitone).charAt(0) : step.root,
+    accidental: step.useDiatonicChord
+      ? normalizeAccidental(getNoteNameBySemitone(diatonicSelection.targetRootSemitone).slice(1))
+      : normalizeAccidental(step.accidental),
+    quality: step.useDiatonicChord ? diatonicSelection.targetQuality : step.quality,
+    caged: step.cagedArea,
+    degree: step.degree,
+  };
+}
+
+// ── Metronome (Web Audio API) ────────────────────────────────────────────────
+
+let metronomeAudioContext = null;
+
+function getAudioContext() {
+  if (!metronomeAudioContext || metronomeAudioContext.state === 'closed') {
+    metronomeAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  if (metronomeAudioContext.state === 'suspended') {
+    metronomeAudioContext.resume();
+  }
+
+  return metronomeAudioContext;
+}
+
+/**
+ * Click the metronome once.
+ * @param {boolean} isAccent - true for beat 1 (higher pitch, louder).
+ */
+function playMetronomeClick(isAccent = false) {
+  try {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = isAccent ? 1760 : 880;   // A6 accent, A5 subdivision
+    gain.gain.setValueAtTime(isAccent ? 0.5 : 0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.06);
+  } catch (error) {
+    // Audio unavailable (SSR, autoplay policy, etc.) — silent fallback.
+    console.warn('Metronome click failed:', error);
+  }
+}
+
+// ── Transport helpers ─────────────────────────────────────────────────────────
+
+function clearTransportTimer() {
+  if (appState.transport.timerId) {
+    window.clearTimeout(appState.transport.timerId);
+    appState.transport.timerId = null;
+  }
+}
+
+function updateTransportStatus(message = 'Stopped') {
+  const node = document.getElementById('progression-transport-status');
+  if (node) {
+    node.textContent = message;
+  }
+}
+
+function syncTransportControls() {
+  const playButton = document.getElementById('progression-play');
+  const pauseButton = document.getElementById('progression-pause');
+  const stopButton = document.getElementById('progression-stop');
+  const isPlaying = appState.transport.status === 'playing';
+  const isPaused = appState.transport.status === 'paused';
+
+  if (playButton) {
+    playButton.disabled = isPlaying;
+  }
+  if (pauseButton) {
+    pauseButton.disabled = !isPlaying;
+  }
+  if (stopButton) {
+    stopButton.disabled = appState.transport.status === 'stopped';
+  }
+
+  if (isPaused) {
+    updateTransportStatus('Paused');
+  } else if (appState.transport.status === 'stopped') {
+    updateTransportStatus('Stopped');
+  }
+}
+
+function renderProgressionTransportState() {
+  const activeProgression = getProgressionById(appState.transport.activeProgressionId);
+  if (!activeProgression || appState.transport.status === 'stopped') {
+    syncTransportControls();
+    return;
+  }
+
+  if (appState.transport.countInRemaining > 0) {
+    updateTransportStatus(`Count-in: ${appState.transport.countInRemaining}`);
+  } else {
+    const currentStep = activeProgression.steps[appState.transport.currentStepIndex];
+    const stepNumber = appState.transport.currentStepIndex + 1;
+    const beatNumber = appState.transport.currentBeatInStep + 1;
+    updateTransportStatus(
+      currentStep ? `Playing step ${stepNumber}/${activeProgression.steps.length} · Beat ${beatNumber}/${currentStep.beats}` : 'Playing'
+    );
+  }
+
+  syncTransportControls();
+}
+
+function applyProgressionStepToMainView(progression, step) {
+  if (!progression || !step) {
+    return;
+  }
+
+  const resolvedState = resolveProgressionStepState(progression, step);
+  appState.root = resolvedState.root;
+  appState.accidental = resolvedState.accidental;
+  appState.quality = resolvedState.quality;
+  appState.caged = resolvedState.caged;
+  appState.degree = resolvedState.degree;
+
+  const root = document.getElementById('root-note');
+  const accidental = document.getElementById('accidental');
+  const quality = document.getElementById('quality');
+  if (root) {
+    root.value = appState.root;
+  }
+  if (accidental) {
+    accidental.value = appState.accidental;
+  }
+  if (quality) {
+    quality.value = appState.quality;
+  }
+
+  const cagedButtons = document.getElementById('caged-buttons');
+  if (cagedButtons) {
+    Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
+      node.classList.toggle('is-active', node.dataset.voicing === appState.caged);
+    });
+  }
+
+  const degreeButtons = document.getElementById('degree-buttons');
+  if (degreeButtons) {
+    Array.from(degreeButtons.querySelectorAll('button[data-degree]')).forEach((node) => {
+      node.classList.toggle('is-active', Number(node.dataset.degree) === appState.degree);
+    });
+  }
+
+  renderCharts();
+}
+
+function stopProgressionPlayback({ preserveView = false } = {}) {
+  clearTransportTimer();
+  appState.transport.status = 'stopped';
+  appState.transport.activeProgressionId = null;
+  appState.transport.currentStepIndex = -1;
+  appState.transport.currentBeatInStep = 0;
+  appState.transport.countInRemaining = 0;
+  renderProgressionPanel();
+  syncTransportControls();
+
+  if (!preserveView) {
+    updateTransportStatus('Stopped');
+  }
+}
+
+function scheduleNextTransportTick(progression) {
+  clearTransportTimer();
+  const beatMs = (60 / Math.max(30, Number(progression.tempo) || 100)) * 1000;
+  appState.transport.timerId = window.setTimeout(() => {
+    advanceProgressionPlayback();
+  }, beatMs);
+}
+
+function advanceProgressionPlayback() {
+  const progression = getProgressionById(appState.transport.activeProgressionId);
+  if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
+    stopProgressionPlayback();
+    return;
+  }
+
+  if (appState.transport.countInRemaining > 0) {
+    // Beat 1 of count-in is accented; all remaining beats are normal clicks.
+    playMetronomeClick(appState.transport.countInRemaining === Number(progression.countInBeats));
+    appState.transport.countInRemaining -= 1;
+    renderProgressionTransportState();
+    scheduleNextTransportTick(progression);
+    return;
+  }
+
+  if (appState.transport.currentStepIndex < 0) {
+    appState.transport.currentStepIndex = 0;
+    appState.transport.currentBeatInStep = 0;
+    playMetronomeClick(true); // accent: first beat of first step
+    applyProgressionStepToMainView(progression, progression.steps[0]);
+    renderProgressionPanel();
+    renderProgressionTransportState();
+    scheduleNextTransportTick(progression);
+    return;
+  }
+
+  const currentStep = progression.steps[appState.transport.currentStepIndex];
+  if (!currentStep) {
+    stopProgressionPlayback();
+    return;
+  }
+
+  appState.transport.currentBeatInStep += 1;
+  if (appState.transport.currentBeatInStep >= currentStep.beats) {
+    appState.transport.currentStepIndex += 1;
+    appState.transport.currentBeatInStep = 0;
+
+    if (appState.transport.currentStepIndex >= progression.steps.length) {
+      stopProgressionPlayback();
+      return;
+    }
+
+    playMetronomeClick(true); // accent: first beat of new step
+    applyProgressionStepToMainView(progression, progression.steps[appState.transport.currentStepIndex]);
+    renderProgressionPanel();
+  } else {
+    playMetronomeClick(false); // subdivision within step
+  }
+
+  renderProgressionTransportState();
+  scheduleNextTransportTick(progression);
+}
+
+function startProgressionPlayback() {
+  const progression = getSelectedProgression();
+  if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
+    return;
+  }
+
+  clearTransportTimer();
+  appState.transport.status = 'playing';
+  appState.transport.activeProgressionId = progression.id;
+
+  if (appState.transport.currentStepIndex < 0 || appState.transport.activeProgressionId !== progression.id) {
+    appState.transport.currentStepIndex = -1;
+    appState.transport.currentBeatInStep = 0;
+    appState.transport.countInRemaining = Math.max(0, Number(progression.countInBeats) || 0);
+  }
+
+  renderProgressionPanel();
+  renderProgressionTransportState();
+  scheduleNextTransportTick(progression);
+}
+
+function pauseProgressionPlayback() {
+  if (appState.transport.status !== 'playing') {
+    return;
+  }
+
+  clearTransportTimer();
+  appState.transport.status = 'paused';
+  renderProgressionTransportState();
 }
 
 function setProgressionDraft(progression) {
@@ -575,7 +887,13 @@ function renderProgressionSteps() {
   container.innerHTML = draft.steps
     .map(
       (step, index) => `
-        <article class="progression-step-card" data-step-id="${step.id}">
+        <article class="progression-step-card${
+          appState.transport.activeProgressionId === appState.selectedProgressionId &&
+          appState.transport.currentStepIndex === index &&
+          appState.transport.status !== 'stopped'
+            ? ' is-playing'
+            : ''
+        }" data-step-id="${step.id}">
           <div class="panel-subheading-row">
             <h3>Step ${index + 1}</h3>
           </div>
@@ -667,6 +985,7 @@ function renderProgressionPanel() {
   renderProgressionLibrary();
   syncProgressionEditorFields();
   renderProgressionSteps();
+  renderProgressionTransportState();
 
   const deleteButton = document.getElementById('progression-delete');
   if (deleteButton) {
@@ -696,6 +1015,9 @@ function setupProgressionControls() {
   const newButton = document.getElementById('progression-new');
   const saveButton = document.getElementById('progression-save');
   const deleteButton = document.getElementById('progression-delete');
+  const playButton = document.getElementById('progression-play');
+  const pauseButton = document.getElementById('progression-pause');
+  const stopButton = document.getElementById('progression-stop');
   const addStepButton = document.getElementById('progression-add-step');
   const listContainer = document.getElementById('progression-list');
   const stepsContainer = document.getElementById('progression-steps');
@@ -717,6 +1039,9 @@ function setupProgressionControls() {
     !newButton ||
     !saveButton ||
     !deleteButton ||
+    !playButton ||
+    !pauseButton ||
+    !stopButton ||
     !addStepButton ||
     !listContainer ||
     !stepsContainer ||
@@ -773,6 +1098,18 @@ function setupProgressionControls() {
 
   deleteButton.addEventListener('click', () => {
     deleteSelectedProgression();
+  });
+
+  playButton.addEventListener('click', () => {
+    startProgressionPlayback();
+  });
+
+  pauseButton.addEventListener('click', () => {
+    pauseProgressionPlayback();
+  });
+
+  stopButton.addEventListener('click', () => {
+    stopProgressionPlayback();
   });
 
   addStepButton.addEventListener('click', () => {
