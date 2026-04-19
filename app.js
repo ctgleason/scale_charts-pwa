@@ -167,13 +167,13 @@ function createId(prefix = 'id') {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function createDefaultProgressionStep() {
+function createDefaultProgressionStep(defaults = {}) {
   return {
     id: createId('step'),
     degree: 1,
-    root: 'A',
-    accidental: '',
-    quality: 'major',
+    root: NATURAL_NOTE_TO_SEMITONE[defaults.root] !== undefined ? defaults.root : 'A',
+    accidental: normalizeAccidental(defaults.accidental),
+    quality: defaults.quality === 'minor' || defaults.quality === 'diminished' ? defaults.quality : 'major',
     useDiatonicChord: true,
     beats: 4,
     cagedArea: 'C',
@@ -181,7 +181,7 @@ function createDefaultProgressionStep() {
 }
 
 function createDefaultProgression() {
-  return {
+  const progression = {
     id: createId('prog'),
     name: 'New progression',
     keyRoot: 'A',
@@ -190,7 +190,17 @@ function createDefaultProgression() {
     tempo: 100,
     countInBeats: 4,
     previewLead: 'none',
-    steps: [createDefaultProgressionStep()],
+  };
+
+  return {
+    ...progression,
+    steps: [
+      createDefaultProgressionStep({
+        root: progression.keyRoot,
+        accidental: progression.keyAccidental,
+        quality: progression.keyQuality,
+      }),
+    ],
   };
 }
 
@@ -369,7 +379,13 @@ function addProgressionStep() {
     return;
   }
 
-  appState.progressionDraft.steps.push(createDefaultProgressionStep());
+  appState.progressionDraft.steps.push(
+    createDefaultProgressionStep({
+      root: appState.progressionDraft.keyRoot,
+      accidental: appState.progressionDraft.keyAccidental,
+      quality: appState.progressionDraft.keyQuality,
+    })
+  );
   renderProgressionPanel();
 }
 
