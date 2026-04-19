@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-preview-and-step-advance';
+const APP_VERSION = 'v2026.04.18+progression-prev-and-fresh-play-preview';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -495,6 +495,7 @@ function updateTransportStatus(message = 'Stopped') {
 
 function setupTransportControls() {
   const playPauseButton = document.getElementById('progression-play-pause');
+  const prevStepButton = document.getElementById('progression-prev-step');
   const stopButton = document.getElementById('progression-stop');
   const nextStepButton = document.getElementById('progression-next-step');
   const testToneButton = document.getElementById('progression-test-tone');
@@ -518,9 +519,15 @@ function setupTransportControls() {
     stopProgressionPlayback();
   });
 
+  if (prevStepButton) {
+    prevStepButton.addEventListener('click', () => {
+      stepSelectedProgression(-1);
+    });
+  }
+
   if (nextStepButton) {
     nextStepButton.addEventListener('click', () => {
-      advanceSelectedProgressionStep();
+      stepSelectedProgression(1);
     });
   }
 
@@ -688,7 +695,7 @@ function applySelectedProgressionStep(stepIndex = 0) {
   return true;
 }
 
-function advanceSelectedProgressionStep() {
+function stepSelectedProgression(direction = 1) {
   const progression = getSelectedProgression();
   if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
     return;
@@ -707,7 +714,8 @@ function advanceSelectedProgressionStep() {
     stopProgressionPlayback({ preserveView: true, showFirstStep: false });
   }
 
-  const nextIndex = (currentIndex + 1) % progression.steps.length;
+  const stepDelta = direction < 0 ? -1 : 1;
+  const nextIndex = (currentIndex + stepDelta + progression.steps.length) % progression.steps.length;
   applySelectedProgressionStep(nextIndex);
 }
 
@@ -818,6 +826,10 @@ async function startProgressionPlayback() {
     appState.transport.currentBeatInStep = 0;
     appState.transport.countInRemaining = Math.max(0, Number(progression.countInBeats) || 0);
     isFreshStart = true;
+  }
+
+  if (isFreshStart && !wasPaused) {
+    applySelectedProgressionStep(0);
   }
 
   renderProgressionPanel();
