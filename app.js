@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+looping-metronome-fix';
+const APP_VERSION = 'v2026.04.18+metronome-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -439,16 +439,38 @@ function playMetronomeClick(isAccent = false) {
     oscillator.connect(gain);
     gain.connect(ctx.destination);
 
-    oscillator.type = 'sine';
-    oscillator.frequency.value = isAccent ? 1760 : 880;   // A6 accent, A5 subdivision
-    gain.gain.setValueAtTime(isAccent ? 0.5 : 0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+    oscillator.type = 'square'; // sharper than sine
+    oscillator.frequency.value = isAccent ? 1000 : 600; // lower frequencies, more audible
+    gain.gain.setValueAtTime(isAccent ? 0.8 : 0.6, ctx.currentTime); // much louder
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1); // longer decay, 100ms
 
     oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.06);
+    oscillator.stop(ctx.currentTime + 0.12);
+    console.log('[Metronome]', isAccent ? 'Accent click' : 'Regular click');
   } catch (error) {
-    // Audio unavailable (SSR, autoplay policy, etc.) — silent fallback.
-    console.warn('Metronome click failed:', error);
+    console.error('Metronome click failed:', error);
+  }
+}
+
+function playTestTone() {
+  try {
+    const ctx = getAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 440; // A4 concert pitch
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.6);
+    console.log('[Test Tone] A4 (440 Hz) playing for 600ms');
+  } catch (error) {
+    console.error('Test tone failed:', error);
   }
 }
 
@@ -469,27 +491,40 @@ function updateTransportStatus(message = 'Stopped') {
 }
 
 function setupTransportControls() {
-  const playButton = document.getElementById('progression-play');
-  const pauseButton = document.getElementById('progression-pause');
+  const playPauseButton = document.getElementById('progression-play-pause');
   const stopButton = document.getElementById('progression-stop');
+  const testToneButton = document.getElementById('progression-test-tone');
   const tempoSlider = document.getElementById('transport-tempo');
   const tempoDisplay = document.getElementById('transport-tempo-display');
 
-  if (!playButton || !pauseButton || !stopButton || !tempoSlider || !tempoDisplay) {
+  if (!playPauseButton || !stopButton || !tempoSlider || !tempoDisplay) {
     return;
   }
 
-  playButton.addEventListener('click', () => {
-    startProgressionPlayback();
-  });
-
-  pauseButton.addEventListener('click', () => {
-    pauseProgressionPlayback();
+  playPauseButton.addEventListener('click', () => {
+    const isPlaying = appState.transport.status === 'playing';
+    if (isPlaying) {
+      pauseProgressionPlayback();
+    } else {
+      startProgressionPlayback();
+    }
   });
 
   stopButton.addEventListener('click', () => {
     stopProgressionPlayback();
   });
+
+  if (testToneButton) {
+    testToneButton.addEventListener('click', async () => {
+      try {
+        await primeMetronomeAudio();
+        playTestTone();
+      } catch (error) {
+        console.warn('Failed to play test tone:', error);
+        window.alert('Audio test failed. Check browser console.');
+      }
+    });
+  }
 
   tempoSlider.addEventListener('input', () => {
     const tempo = Number(tempoSlider.value) || 100;
@@ -519,25 +554,25 @@ function updateTransportTempoDisplay(tempo) {
 }
 
 function syncTransportControls() {
-  const playButton = document.getElementById('progression-play');
-  const pauseButton = document.getElementById('progression-pause');
+  const playPauseButton = document.getElementById('progression-play-pause');
   const stopButton = document.getElementById('progression-stop');
   const isPlaying = appState.transport.status === 'playing';
   const isPaused = appState.transport.status === 'paused';
+  const isStopped = appState.transport.status === 'stopped';
 
-  if (playButton) {
-    playButton.disabled = isPlaying;
+  if (playPauseButton) {
+    playPauseButton.textContent = isPlaying ? '⏸' : '▶';
+    playPauseButton.title = isPlaying ? 'Pause' : 'Play';
+    playPauseButton.disabled = false;
   }
-  if (pauseButton) {
-    pauseButton.disabled = !isPlaying;
-  }
+
   if (stopButton) {
-    stopButton.disabled = appState.transport.status === 'stopped';
+    stopButton.disabled = isStopped;
   }
 
   if (isPaused) {
     updateTransportStatus('Paused');
-  } else if (appState.transport.status === 'stopped') {
+  } else if (isStopped) {
     updateTransportStatus('Stopped');
   }
 }
@@ -689,9 +724,11 @@ async function startProgressionPlayback() {
 
   try {
     await primeMetronomeAudio();
+    playMetronomeClick(true);
   } catch (error) {
     console.warn('Failed to initialize metronome audio:', error);
     updateTransportStatus('Audio blocked — tap Play again');
+    return;
   }
 
   clearTransportTimer();

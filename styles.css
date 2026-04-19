@@ -255,6 +255,10 @@ header p {
   text-align: right;
 }
 
+.transport-test-btn {
+  font-size: 1rem;
+}
+
 .progression-item-title {
   display: block;
   font-weight: 700;
