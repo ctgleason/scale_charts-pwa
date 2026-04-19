@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+metronome-fix';
+const APP_VERSION = 'v2026.04.18+countin-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -671,18 +671,30 @@ function advanceProgressionPlayback() {
   }
 
   if (appState.transport.countInRemaining > 0) {
-    // Beat 1 of count-in is accented; all remaining beats are normal clicks.
-    playMetronomeClick(appState.transport.countInRemaining === Number(progression.countInBeats));
     appState.transport.countInRemaining -= 1;
+
+    if (appState.transport.countInRemaining === 0) {
+      // Last count-in beat doubles as beat 1 of the progression — accented, chord shown now.
+      playMetronomeClick(true);
+      appState.transport.currentStepIndex = 0;
+      appState.transport.currentBeatInStep = 0;
+      applyProgressionStepToMainView(progression, progression.steps[0]);
+      renderProgressionPanel();
+    } else {
+      // Preparatory count-in beats are un-accented so they sound distinct from the progression.
+      playMetronomeClick(false);
+    }
+
     renderProgressionTransportState();
     scheduleNextTransportTick(progression);
     return;
   }
 
   if (appState.transport.currentStepIndex < 0) {
+    // No count-in path: fire accented beat 1 of step 0 immediately.
     appState.transport.currentStepIndex = 0;
     appState.transport.currentBeatInStep = 0;
-    playMetronomeClick(true); // accent: first beat of first step
+    playMetronomeClick(true);
     applyProgressionStepToMainView(progression, progression.steps[0]);
     renderProgressionPanel();
     renderProgressionTransportState();
@@ -724,7 +736,6 @@ async function startProgressionPlayback() {
 
   try {
     await primeMetronomeAudio();
-    playMetronomeClick(true);
   } catch (error) {
     console.warn('Failed to initialize metronome audio:', error);
     updateTransportStatus('Audio blocked — tap Play again');
