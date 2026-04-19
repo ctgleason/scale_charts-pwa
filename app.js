@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-tonic-area-fix';
+const APP_VERSION = 'v2026.04.18+progression-preview-and-step-advance';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -168,6 +168,13 @@ const appState = {
     currentBeatInStep: 0,
     countInRemaining: 0,
     timerId: null,
+  },
+  selectionContext: {
+    source: 'manual',
+    progressionId: null,
+    stepId: null,
+    stepIndex: null,
+    beats: null,
   },
 };
 
@@ -489,6 +496,7 @@ function updateTransportStatus(message = 'Stopped') {
 function setupTransportControls() {
   const playPauseButton = document.getElementById('progression-play-pause');
   const stopButton = document.getElementById('progression-stop');
+  const nextStepButton = document.getElementById('progression-next-step');
   const testToneButton = document.getElementById('progression-test-tone');
   const tempoSlider = document.getElementById('transport-tempo');
   const tempoDisplay = document.getElementById('transport-tempo-display');
@@ -509,6 +517,12 @@ function setupTransportControls() {
   stopButton.addEventListener('click', () => {
     stopProgressionPlayback();
   });
+
+  if (nextStepButton) {
+    nextStepButton.addEventListener('click', () => {
+      advanceSelectedProgressionStep();
+    });
+  }
 
   if (testToneButton) {
     testToneButton.addEventListener('click', async () => {
@@ -599,12 +613,21 @@ function applyProgressionStepToMainView(progression, step) {
     return;
   }
 
+  const resolvedStepIndex = progression.steps.findIndex((item) => item.id === step.id);
+
   const resolvedState = resolveProgressionStepState(progression, step);
   appState.root = resolvedState.root;
   appState.accidental = resolvedState.accidental;
   appState.quality = resolvedState.quality;
   appState.caged = resolvedState.caged;
   appState.degree = resolvedState.degree;
+  appState.selectionContext = {
+    source: 'progression',
+    progressionId: progression.id,
+    stepId: step.id,
+    stepIndex: resolvedStepIndex >= 0 ? resolvedStepIndex : 0,
+    beats: Math.min(16, Math.max(1, Number(step.beats) || 1)),
+  };
 
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
@@ -636,7 +659,59 @@ function applyProgressionStepToMainView(progression, step) {
   renderCharts();
 }
 
-function stopProgressionPlayback({ preserveView = false } = {}) {
+function clearProgressionSelectionContext() {
+  appState.selectionContext = {
+    source: 'manual',
+    progressionId: null,
+    stepId: null,
+    stepIndex: null,
+    beats: null,
+  };
+}
+
+function applySelectedProgressionStep(stepIndex = 0) {
+  const progression = getSelectedProgression();
+  if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
+    return false;
+  }
+
+  const normalizedIndex = Math.min(
+    progression.steps.length - 1,
+    Math.max(0, Number.isFinite(Number(stepIndex)) ? Math.trunc(Number(stepIndex)) : 0)
+  );
+  const step = progression.steps[normalizedIndex];
+  if (!step) {
+    return false;
+  }
+
+  applyProgressionStepToMainView(progression, step);
+  return true;
+}
+
+function advanceSelectedProgressionStep() {
+  const progression = getSelectedProgression();
+  if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
+    return;
+  }
+
+  let currentIndex = -1;
+  if (
+    appState.selectionContext.source === 'progression' &&
+    appState.selectionContext.progressionId === progression.id &&
+    Number.isInteger(appState.selectionContext.stepIndex)
+  ) {
+    currentIndex = appState.selectionContext.stepIndex;
+  }
+
+  if (appState.transport.status !== 'stopped') {
+    stopProgressionPlayback({ preserveView: true, showFirstStep: false });
+  }
+
+  const nextIndex = (currentIndex + 1) % progression.steps.length;
+  applySelectedProgressionStep(nextIndex);
+}
+
+function stopProgressionPlayback({ preserveView = false, showFirstStep = true } = {}) {
   clearTransportTimer();
   appState.transport.status = 'stopped';
   appState.transport.activeProgressionId = null;
@@ -645,6 +720,10 @@ function stopProgressionPlayback({ preserveView = false } = {}) {
   appState.transport.countInRemaining = 0;
   renderProgressionPanel();
   syncTransportControls();
+
+  if (showFirstStep) {
+    applySelectedProgressionStep(0);
+  }
 
   if (!preserveView) {
     updateTransportStatus('Stopped');
@@ -771,10 +850,15 @@ function selectProgression(progressionId) {
     return;
   }
 
+  if (appState.transport.status !== 'stopped') {
+    stopProgressionPlayback({ preserveView: true, showFirstStep: false });
+  }
+
   appState.selectedProgressionId = progression.id;
   setProgressionDraft(progression);
   updateTransportTempoDisplay(progression.tempo);
   renderProgressionPanel();
+  applySelectedProgressionStep(0);
 }
 
 function updateProgressionDraftField(field, value) {
@@ -1496,10 +1580,27 @@ function getSelectionLabel(selection = null, resolvedVoicing = null) {
   return `${selection.targetSymbol} (${selection.degreeLabel}) · ${caged} voicing`;
 }
 
+function getSelectionBeatsSuffix() {
+  if (appState.selectionContext.source !== 'progression') {
+    return '';
+  }
+
+  if (!appState.selectedProgressionId || appState.selectionContext.progressionId !== appState.selectedProgressionId) {
+    return '';
+  }
+
+  const beats = Number(appState.selectionContext.beats);
+  if (!Number.isFinite(beats) || beats <= 0) {
+    return '';
+  }
+
+  return ` (${beats} beat${beats === 1 ? '' : 's'})`;
+}
+
 function updateSelectionTitle(label = getSelectionLabel()) {
   const title = document.getElementById('selection-title');
   if (title) {
-    title.textContent = label;
+    title.textContent = `${label}${getSelectionBeatsSuffix()}`;
   }
 }
 
@@ -2272,18 +2373,21 @@ function setupControls() {
   quality.value = appState.quality;
 
   root.addEventListener('change', () => {
+    clearProgressionSelectionContext();
     appState.root = root.value;
     updateSelectionTitle();
     renderCharts();
   });
 
   accidental.addEventListener('change', () => {
+    clearProgressionSelectionContext();
     appState.accidental = normalizeAccidental(accidental.value);
     updateSelectionTitle();
     renderCharts();
   });
 
   quality.addEventListener('change', () => {
+    clearProgressionSelectionContext();
     appState.quality = quality.value;
     updateSelectionTitle();
     renderCharts();
@@ -2295,6 +2399,7 @@ function setupControls() {
       return;
     }
 
+    clearProgressionSelectionContext();
     appState.caged = button.dataset.voicing;
 
     Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
@@ -2311,6 +2416,7 @@ function setupControls() {
       return;
     }
 
+    clearProgressionSelectionContext();
     appState.degree = Number(button.dataset.degree) || 1;
 
     Array.from(degreeButtons.querySelectorAll('button[data-degree]')).forEach((node) => {
