@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+countin-first-beat-fix';
+const APP_VERSION = 'v2026.04.18+countin-4-3-2-1-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -671,21 +671,10 @@ function advanceProgressionPlayback() {
   }
 
   if (appState.transport.countInRemaining > 0) {
-    appState.transport.countInRemaining -= 1;
-
-    if (appState.transport.countInRemaining === 0) {
-      // Last count-in beat doubles as beat 1 of the progression — accented, chord shown now.
-      playMetronomeClick(true);
-      appState.transport.currentStepIndex = 0;
-      appState.transport.currentBeatInStep = 0;
-      applyProgressionStepToMainView(progression, progression.steps[0]);
-      renderProgressionPanel();
-    } else {
-      // Preparatory count-in beats are un-accented so they sound distinct from the progression.
-      playMetronomeClick(false);
-    }
-
+    // Count-in ticks are 4-3-2-1; progression starts on the following beat.
+    playMetronomeClick(false);
     renderProgressionTransportState();
+    appState.transport.countInRemaining -= 1;
     scheduleNextTransportTick(progression);
     return;
   }
