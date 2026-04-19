@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+preview-fade-visible-and-step-label';
+const APP_VERSION = 'v2026.04.18+modes-scale-from-key-no-progression';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -111,6 +111,8 @@ const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 const DEGREE_TRIAD_QUALITIES = {
   major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished'],
   minor: ['minor', 'diminished', 'major', 'minor', 'minor', 'major', 'major'],
+  dorian: ['minor', 'minor', 'major', 'major', 'minor', 'diminished', 'major'],
+  mixolydian: ['major', 'minor', 'diminished', 'major', 'minor', 'minor', 'major'],
 };
 
 function normalizeSemitone(value) {
@@ -160,6 +162,7 @@ const appState = {
   },
   progressions: [],
   selectedProgressionId: null,
+  progressionKeyQuality: null,
   progressionDraft: null,
   transport: {
     status: 'stopped',
@@ -243,7 +246,7 @@ function sanitizeProgression(progression = {}) {
     name: typeof progression.name === 'string' && progression.name.trim() ? progression.name.trim() : 'Untitled progression',
     keyRoot: NATURAL_NOTE_TO_SEMITONE[progression.keyRoot] !== undefined ? progression.keyRoot : 'A',
     keyAccidental: normalizeAccidental(progression.keyAccidental),
-    keyQuality: progression.keyQuality === 'minor' ? 'minor' : 'major',
+    keyQuality: ['major', 'minor', 'dorian', 'mixolydian'].includes(progression.keyQuality) ? progression.keyQuality : 'major',
     tempo: Math.min(240, Math.max(30, Number(progression.tempo) || 100)),
     countInBeats: Math.min(8, Math.max(0, Number(progression.countInBeats) || 0)),
     previewLead: PREVIEW_LEAD_OPTIONS.includes(progression.previewLead) ? progression.previewLead : 'none',
@@ -652,7 +655,7 @@ function syncTransportControls() {
   if (playPauseButton) {
     playPauseButton.textContent = isPlaying ? '⏸' : '▶';
     playPauseButton.title = isPlaying ? 'Pause' : 'Play';
-    playPauseButton.disabled = false;
+    playPauseButton.disabled = !appState.selectedProgressionId;
   }
 
   if (stopButton) {
@@ -702,6 +705,7 @@ function applyProgressionStepToMainView(progression, step) {
   appState.quality = resolvedState.quality;
   appState.caged = resolvedState.caged;
   appState.degree = resolvedState.degree;
+  appState.progressionKeyQuality = progression.keyQuality;
   appState.selectionContext = {
     source: 'progression',
     progressionId: progression.id,
@@ -741,6 +745,7 @@ function applyProgressionStepToMainView(progression, step) {
 }
 
 function clearProgressionSelectionContext() {
+  appState.progressionKeyQuality = null;
   appState.selectionContext = {
     source: 'manual',
     progressionId: null,
@@ -935,6 +940,19 @@ function pauseProgressionPlayback() {
 
 function setProgressionDraft(progression) {
   appState.progressionDraft = cloneProgression(sanitizeProgression(progression));
+}
+
+function deselectProgression() {
+  if (appState.transport.status !== 'stopped') {
+    stopProgressionPlayback({ preserveView: true, showFirstStep: false });
+  }
+
+  appState.selectedProgressionId = null;
+  appState.progressionDraft = null;
+  appState.progressionKeyQuality = null;
+  clearProgressionSelectionContext();
+  renderProgressionPanel();
+  renderCharts();
 }
 
 function selectProgression(progressionId) {
@@ -1144,12 +1162,19 @@ function renderProgressionLibrary() {
     return;
   }
 
+  const noneItem = `
+    <button type="button" class="progression-item${!appState.selectedProgressionId ? ' is-active' : ''}" data-progression-id="__none__">
+      <span class="progression-item-title">— None (free play)</span>
+      <span class="progression-item-meta">Use Chord Options panel independently</span>
+    </button>
+  `;
+
   if (appState.progressions.length === 0) {
-    container.innerHTML = '<p class="progression-list-empty">No saved progressions yet.</p>';
+    container.innerHTML = noneItem + '<p class="progression-list-empty">No saved progressions yet.</p>';
     return;
   }
 
-  container.innerHTML = appState.progressions
+  container.innerHTML = noneItem + appState.progressions
     .map(
       (progression) => `
         <button type="button" class="progression-item${progression.id === appState.selectedProgressionId ? ' is-active' : ''}" data-progression-id="${progression.id}">
@@ -1397,14 +1422,18 @@ function setupProgressionControls() {
       return;
     }
 
-    selectProgression(button.dataset.progressionId);
+    if (button.dataset.progressionId === '__none__') {
+      deselectProgression();
+    } else {
+      selectProgression(button.dataset.progressionId);
+    }
   });
 
   const draftFieldBindings = [
     [name, 'name', (value) => value],
     [root, 'keyRoot', (value) => value],
     [accidental, 'keyAccidental', (value) => normalizeAccidental(value)],
-    [quality, 'keyQuality', (value) => (value === 'minor' ? 'minor' : 'major')],
+    [quality, 'keyQuality', (value) => (['major', 'minor', 'dorian', 'mixolydian'].includes(value) ? value : 'major')],
     [tempo, 'tempo', (value) => Math.min(240, Math.max(30, Number(value) || 100))],
     [countIn, 'countInBeats', (value) => Math.min(8, Math.max(0, Number(value) || 0))],
     [previewLead, 'previewLead', (value) => (PREVIEW_LEAD_OPTIONS.includes(value) ? value : 'none')],
@@ -1483,6 +1512,14 @@ function getQualityLabel(quality) {
 
   if (quality === 'diminished') {
     return 'Diminished';
+  }
+
+  if (quality === 'dorian') {
+    return 'Dorian';
+  }
+
+  if (quality === 'mixolydian') {
+    return 'Mixolydian';
   }
 
   return 'Major';
@@ -1577,8 +1614,12 @@ function getDegreeSelection(state = appState) {
   const keyNote = parseSelectedNote(state);
   const degreeIndex = getDegreeIndex(state);
   const degreeLabel = getDegreeLabelByIndex(degreeIndex);
-  const scaleIntervals = getScaleIntervalsForQuality(state.quality);
-  const degreeQualities = DEGREE_TRIAD_QUALITIES[state.quality] || DEGREE_TRIAD_QUALITIES.major;
+  // When in a progression context, use the progression's key quality for scale/degree, not the chord's quality
+  const keyQuality = (state === appState && appState.selectionContext.source === 'progression' && appState.progressionKeyQuality)
+    ? appState.progressionKeyQuality
+    : state.quality;
+  const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
+  const degreeQualities = DEGREE_TRIAD_QUALITIES[keyQuality] || DEGREE_TRIAD_QUALITIES.major;
   const targetInterval = scaleIntervals[degreeIndex] ?? 0;
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetQuality = degreeQualities[degreeIndex] || 'major';
@@ -1589,7 +1630,7 @@ function getDegreeSelection(state = appState) {
 
   return {
     keyRootSemitone: keyNote.semitone,
-    keyQuality: state.quality,
+    keyQuality,
     keySymbol: getChordSymbol(state),
     degreeIndex,
     degreeLabel,
@@ -1878,13 +1919,15 @@ function getScaleIntervalsForQuality(quality) {
     return match.intervals;
   }
 
-  return quality === 'minor'
-    ? [0, 2, 3, 5, 7, 8, 10]
-    : [0, 2, 4, 5, 7, 9, 11];
+  if (quality === 'minor') return [0, 2, 3, 5, 7, 8, 10];
+  if (quality === 'dorian') return [0, 2, 3, 5, 7, 9, 10];
+  if (quality === 'mixolydian') return [0, 2, 4, 5, 7, 9, 10];
+  return [0, 2, 4, 5, 7, 9, 11];
 }
 
 function getPentatonicIntervalsForQuality(quality) {
-  return quality === 'minor' ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
+  // minor and dorian use minor pentatonic; major and mixolydian use major pentatonic
+  return (quality === 'minor' || quality === 'dorian') ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
 }
 
 function buildDegreeLabelMap(scaleIntervals) {

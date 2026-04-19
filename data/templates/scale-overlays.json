@@ -21,7 +21,7 @@
     },
     {
       "id": "overlay-diatonic",
-      "label": "Major/Minor scale",
+      "label": "Mode scale",
       "color": "#1d4ed8",
       "defaultEnabled": false
     }
@@ -40,6 +40,20 @@
       "type": "scale",
       "quality": "minor",
       "intervals": [0, 2, 3, 5, 7, 8, 10]
+    },
+    {
+      "id": "scale-dorian",
+      "label": "Dorian Mode Scale",
+      "type": "scale",
+      "quality": "dorian",
+      "intervals": [0, 2, 3, 5, 7, 9, 10]
+    },
+    {
+      "id": "scale-mixolydian",
+      "label": "Mixolydian Mode Scale",
+      "type": "scale",
+      "quality": "mixolydian",
+      "intervals": [0, 2, 4, 5, 7, 9, 10]
     }
   ]
 }
