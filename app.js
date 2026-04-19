@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-chord-mapping-fix';
+const APP_VERSION = 'v2026.04.18+progression-tonic-area-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -1443,17 +1443,6 @@ function resolveVoicingForSelection(selection) {
   const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
   if (candidatePatterns.length === 0) {
     throw new Error(`No ${selection.targetQuality} voicing templates available.`);
-  }
-
-  const matchingCagedPattern = candidatePatterns.find((pattern) => pattern.caged === appState.caged);
-  if (matchingCagedPattern) {
-    const fixedCagedTransposed = transposeVoicing(matchingCagedPattern, selection.targetRootSemitone);
-    return {
-      pattern: matchingCagedPattern,
-      transposed: fixedCagedTransposed,
-      caged: matchingCagedPattern.caged,
-      anchorPosition: baseTransposed.position,
-    };
   }
 
   const hasOpenAnchor = baseTransposed.position === 1;
