@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+transport-ui-refresh';
+const APP_VERSION = 'v2026.04.18+looping-metronome-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -401,16 +401,29 @@ function resolveProgressionStepState(progression, step) {
 
 let metronomeAudioContext = null;
 
+function canUseWebAudio() {
+  return typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+}
+
 function getAudioContext() {
+  if (!canUseWebAudio()) {
+    throw new Error('Web Audio API is not available in this browser.');
+  }
+
   if (!metronomeAudioContext || metronomeAudioContext.state === 'closed') {
     metronomeAudioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
-  if (metronomeAudioContext.state === 'suspended') {
-    metronomeAudioContext.resume();
+  return metronomeAudioContext;
+}
+
+async function primeMetronomeAudio() {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
   }
 
-  return metronomeAudioContext;
+  return ctx;
 }
 
 /**
@@ -654,8 +667,7 @@ function advanceProgressionPlayback() {
     appState.transport.currentBeatInStep = 0;
 
     if (appState.transport.currentStepIndex >= progression.steps.length) {
-      stopProgressionPlayback();
-      return;
+      appState.transport.currentStepIndex = 0;
     }
 
     playMetronomeClick(true); // accent: first beat of new step
@@ -669,17 +681,25 @@ function advanceProgressionPlayback() {
   scheduleNextTransportTick(progression);
 }
 
-function startProgressionPlayback() {
+async function startProgressionPlayback() {
   const progression = getSelectedProgression();
   if (!progression || !Array.isArray(progression.steps) || progression.steps.length === 0) {
     return;
   }
 
+  try {
+    await primeMetronomeAudio();
+  } catch (error) {
+    console.warn('Failed to initialize metronome audio:', error);
+    updateTransportStatus('Audio blocked — tap Play again');
+  }
+
   clearTransportTimer();
+  const previousProgressionId = appState.transport.activeProgressionId;
   appState.transport.status = 'playing';
   appState.transport.activeProgressionId = progression.id;
 
-  if (appState.transport.currentStepIndex < 0 || appState.transport.activeProgressionId !== progression.id) {
+  if (appState.transport.currentStepIndex < 0 || previousProgressionId !== progression.id) {
     appState.transport.currentStepIndex = -1;
     appState.transport.currentBeatInStep = 0;
     appState.transport.countInRemaining = Math.max(0, Number(progression.countInBeats) || 0);
