@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+countin-fix';
+const APP_VERSION = 'v2026.04.18+countin-first-beat-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -744,18 +744,26 @@ async function startProgressionPlayback() {
 
   clearTransportTimer();
   const previousProgressionId = appState.transport.activeProgressionId;
+  const wasPaused = appState.transport.status === 'paused';
   appState.transport.status = 'playing';
   appState.transport.activeProgressionId = progression.id;
+  let isFreshStart = false;
 
   if (appState.transport.currentStepIndex < 0 || previousProgressionId !== progression.id) {
     appState.transport.currentStepIndex = -1;
     appState.transport.currentBeatInStep = 0;
     appState.transport.countInRemaining = Math.max(0, Number(progression.countInBeats) || 0);
+    isFreshStart = true;
   }
 
   renderProgressionPanel();
   renderProgressionTransportState();
-  scheduleNextTransportTick(progression);
+
+  if (isFreshStart && !wasPaused) {
+    advanceProgressionPlayback();
+  } else {
+    scheduleNextTransportTick(progression);
+  }
 }
 
 function pauseProgressionPlayback() {
