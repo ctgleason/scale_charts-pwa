@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+countin-4-3-2-1-fix';
+const APP_VERSION = 'v2026.04.18+progression-chord-mapping-fix';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -384,14 +384,10 @@ function resolveProgressionStepState(progression, step) {
     quality: progression.keyQuality,
     degree: step.degree,
   };
-  const diatonicSelection = getDegreeSelectionForState(keyState);
-
   return {
-    root: step.useDiatonicChord ? getNoteNameBySemitone(diatonicSelection.targetRootSemitone).charAt(0) : step.root,
-    accidental: step.useDiatonicChord
-      ? normalizeAccidental(getNoteNameBySemitone(diatonicSelection.targetRootSemitone).slice(1))
-      : normalizeAccidental(step.accidental),
-    quality: step.useDiatonicChord ? diatonicSelection.targetQuality : step.quality,
+    root: step.useDiatonicChord ? keyState.root : step.root,
+    accidental: step.useDiatonicChord ? keyState.accidental : normalizeAccidental(step.accidental),
+    quality: step.useDiatonicChord ? keyState.quality : step.quality,
     caged: step.cagedArea,
     degree: step.degree,
   };
@@ -1447,6 +1443,17 @@ function resolveVoicingForSelection(selection) {
   const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
   if (candidatePatterns.length === 0) {
     throw new Error(`No ${selection.targetQuality} voicing templates available.`);
+  }
+
+  const matchingCagedPattern = candidatePatterns.find((pattern) => pattern.caged === appState.caged);
+  if (matchingCagedPattern) {
+    const fixedCagedTransposed = transposeVoicing(matchingCagedPattern, selection.targetRootSemitone);
+    return {
+      pattern: matchingCagedPattern,
+      transposed: fixedCagedTransposed,
+      caged: matchingCagedPattern.caged,
+      anchorPosition: baseTransposed.position,
+    };
   }
 
   const hasOpenAnchor = baseTransposed.position === 1;
