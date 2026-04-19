@@ -1610,6 +1610,18 @@ function getVoicingCandidatesByQuality(quality) {
   return [];
 }
 
+function getTriadVoicingQuality(quality) {
+  if (quality === 'dorian') {
+    return 'minor';
+  }
+
+  if (quality === 'mixolydian') {
+    return 'major';
+  }
+
+  return quality;
+}
+
 function getDegreeSelection(state = appState) {
   const keyNote = parseSelectedNote(state);
   const degreeIndex = getDegreeIndex(state);
@@ -1642,7 +1654,7 @@ function getDegreeSelection(state = appState) {
 }
 
 function resolveVoicingForSelection(selection, state = appState) {
-  const basePattern = findVoicingByState(state.quality, state.caged);
+  const basePattern = findVoicingByState(getTriadVoicingQuality(state.quality), state.caged);
   if (!basePattern) {
     throw new Error('No base voicing template found for current selection.');
   }
@@ -1796,8 +1808,9 @@ async function loadTemplates() {
 }
 
 function findVoicingByState(quality, caged) {
+  const normalizedQuality = getTriadVoicingQuality(quality);
   return (
-    catalog.voicings.find((voicing) => voicing.quality === quality && voicing.caged === caged) || null
+    catalog.voicings.find((voicing) => voicing.quality === normalizedQuality && voicing.caged === caged) || null
   );
 }
 
