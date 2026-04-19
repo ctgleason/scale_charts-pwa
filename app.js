@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-transport-metronome';
+const APP_VERSION = 'v2026.04.18+transport-ui-refresh';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -455,6 +455,56 @@ function updateTransportStatus(message = 'Stopped') {
   }
 }
 
+function setupTransportControls() {
+  const playButton = document.getElementById('progression-play');
+  const pauseButton = document.getElementById('progression-pause');
+  const stopButton = document.getElementById('progression-stop');
+  const tempoSlider = document.getElementById('transport-tempo');
+  const tempoDisplay = document.getElementById('transport-tempo-display');
+
+  if (!playButton || !pauseButton || !stopButton || !tempoSlider || !tempoDisplay) {
+    return;
+  }
+
+  playButton.addEventListener('click', () => {
+    startProgressionPlayback();
+  });
+
+  pauseButton.addEventListener('click', () => {
+    pauseProgressionPlayback();
+  });
+
+  stopButton.addEventListener('click', () => {
+    stopProgressionPlayback();
+  });
+
+  tempoSlider.addEventListener('input', () => {
+    const tempo = Number(tempoSlider.value) || 100;
+    tempoDisplay.textContent = `${tempo} BPM`;
+
+    // If currently playing, update the saved tempo in the progression
+    const progression = getSelectedProgression();
+    if (progression) {
+      progression.tempo = tempo;
+      saveProgressionsToStorage();
+    }
+  });
+
+  syncTransportControls();
+}
+
+function updateTransportTempoDisplay(tempo) {
+  const tempoSlider = document.getElementById('transport-tempo');
+  if (tempoSlider) {
+    tempoSlider.value = tempo;
+  }
+
+  const tempoDisplay = document.getElementById('transport-tempo-display');
+  if (tempoDisplay) {
+    tempoDisplay.textContent = `${tempo} BPM`;
+  }
+}
+
 function syncTransportControls() {
   const playButton = document.getElementById('progression-play');
   const pauseButton = document.getElementById('progression-pause');
@@ -662,6 +712,7 @@ function selectProgression(progressionId) {
 
   appState.selectedProgressionId = progression.id;
   setProgressionDraft(progression);
+  updateTransportTempoDisplay(progression.tempo);
   renderProgressionPanel();
 }
 
@@ -985,6 +1036,10 @@ function renderProgressionPanel() {
   renderProgressionLibrary();
   syncProgressionEditorFields();
   renderProgressionSteps();
+  const selectedProgression = getSelectedProgression();
+  if (selectedProgression) {
+    updateTransportTempoDisplay(selectedProgression.tempo);
+  }
   renderProgressionTransportState();
 
   const deleteButton = document.getElementById('progression-delete');
@@ -1015,9 +1070,6 @@ function setupProgressionControls() {
   const newButton = document.getElementById('progression-new');
   const saveButton = document.getElementById('progression-save');
   const deleteButton = document.getElementById('progression-delete');
-  const playButton = document.getElementById('progression-play');
-  const pauseButton = document.getElementById('progression-pause');
-  const stopButton = document.getElementById('progression-stop');
   const addStepButton = document.getElementById('progression-add-step');
   const listContainer = document.getElementById('progression-list');
   const stepsContainer = document.getElementById('progression-steps');
@@ -1039,9 +1091,6 @@ function setupProgressionControls() {
     !newButton ||
     !saveButton ||
     !deleteButton ||
-    !playButton ||
-    !pauseButton ||
-    !stopButton ||
     !addStepButton ||
     !listContainer ||
     !stepsContainer ||
@@ -1098,18 +1147,6 @@ function setupProgressionControls() {
 
   deleteButton.addEventListener('click', () => {
     deleteSelectedProgression();
-  });
-
-  playButton.addEventListener('click', () => {
-    startProgressionPlayback();
-  });
-
-  pauseButton.addEventListener('click', () => {
-    pauseProgressionPlayback();
-  });
-
-  stopButton.addEventListener('click', () => {
-    stopProgressionPlayback();
   });
 
   addStepButton.addEventListener('click', () => {
@@ -2250,6 +2287,7 @@ async function boot() {
   loadProgressionsFromStorage();
   setupControls();
   setupProgressionControls();
+  setupTransportControls();
   updateVersionLabel();
   populateOverlayToggles();
   updateSelectionTitle();

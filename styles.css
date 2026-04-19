@@ -159,6 +159,102 @@ header p {
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
 }
 
+.progression-transport-panel {
+  display: grid;
+  gap: 0.75rem;
+  background: #f8fafc;
+}
+
+.progression-transport-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.progression-transport-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.progression-transport-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.progression-transport-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.transport-btn {
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 0.45rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.transport-btn:hover:not(:disabled) {
+  border-color: #0f172a;
+  background: #f1f5f9;
+}
+
+.transport-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transport-tempo-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.transport-tempo-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.transport-tempo-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+}
+
+.transport-tempo-control input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+  border: none;
+}
+
+.transport-tempo-display {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  min-width: 70px;
+  text-align: right;
+}
+
 .progression-item-title {
   display: block;
   font-weight: 700;

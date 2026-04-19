@@ -54,18 +54,6 @@
               </div>
             </div>
 
-            <section class="progression-transport" aria-label="Progression transport">
-              <div class="panel-subheading-row">
-                <h3>Transport</h3>
-                <div class="editor-actions">
-                  <button id="progression-play" type="button" class="ghost-btn">Play</button>
-                  <button id="progression-pause" type="button" class="ghost-btn">Pause</button>
-                  <button id="progression-stop" type="button" class="ghost-btn">Stop</button>
-                </div>
-              </div>
-              <p id="progression-transport-status" class="progression-transport-status">Stopped</p>
-            </section>
-
             <div class="controls-grid progression-meta-grid">
               <label class="control-field">
                 <span>Name</span>
@@ -199,6 +187,22 @@
       <section class="panel">
         <h2 id="selection-title">A Major · C voicing</h2>
         <div id="main-chart" class="chart"></div>
+      </section>
+
+      <section class="panel progression-transport-panel" aria-label="Progression transport">
+        <div class="progression-transport-header">
+          <h3>Transport</h3>
+          <p id="progression-transport-status" class="progression-transport-status">Stopped</p>
+        </div>
+        <div class="progression-transport-controls">
+          <button id="progression-play" type="button" class="transport-btn" title="Play" aria-label="Play">▶</button>
+          <button id="progression-pause" type="button" class="transport-btn" title="Pause" aria-label="Pause">⏸</button>
+          <button id="progression-stop" type="button" class="transport-btn" title="Stop" aria-label="Stop">⏹</button>
+          <div class="transport-tempo-control">
+            <input id="transport-tempo" type="range" min="30" max="240" step="1" value="100" />
+            <span id="transport-tempo-display" class="transport-tempo-display">100 BPM</span>
+          </div>
+        </div>
       </section>
     </main>
 

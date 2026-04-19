@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scale-charts-pwa-v19';
+const CACHE_NAME = 'scale-charts-pwa-v20';
 const APP_ASSETS = [
   './',
   './index.html',
