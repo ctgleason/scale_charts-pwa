@@ -419,6 +419,23 @@ header p {
   padding: 0.25rem;
 }
 
+.chart-stack {
+  position: relative;
+}
+
+.chart-preview-layer {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--preview-fade-duration, 0ms) linear;
+}
+
+.chart-preview-layer.is-visible {
+  opacity: 1;
+}
+
 .chart svg {
   max-width: 100%;
   height: auto;

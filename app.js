@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+progression-prev-and-fresh-play-preview';
+const APP_VERSION = 'v2026.04.18+preview-fade-in';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -168,6 +168,7 @@ const appState = {
     currentBeatInStep: 0,
     countInRemaining: 0,
     timerId: null,
+    previewAnimationFrameId: null,
   },
   selectionContext: {
     source: 'manual',
@@ -486,6 +487,77 @@ function clearTransportTimer() {
   }
 }
 
+function clearPreviewFade() {
+  if (appState.transport.previewAnimationFrameId) {
+    window.cancelAnimationFrame(appState.transport.previewAnimationFrameId);
+    appState.transport.previewAnimationFrameId = null;
+  }
+
+  const previewChart = document.getElementById('preview-chart');
+  if (previewChart) {
+    previewChart.classList.remove('is-visible');
+    previewChart.style.removeProperty('--preview-fade-duration');
+    previewChart.innerHTML = '';
+  }
+}
+
+function getProgressionStepDisplayState(progression, step) {
+  const resolvedState = resolveProgressionStepState(progression, step);
+  return {
+    root: resolvedState.root,
+    accidental: resolvedState.accidental,
+    quality: resolvedState.quality,
+    caged: resolvedState.caged,
+    degree: resolvedState.degree,
+  };
+}
+
+function getPreviewDurationMs(progression) {
+  return (60 / Math.max(30, Number(progression?.tempo) || 100)) * 1000;
+}
+
+function shouldFadePreview(progression) {
+  return Boolean(progression && progression.previewLead && progression.previewLead !== 'none');
+}
+
+async function showPreviewFadeForStep(progression, step) {
+  if (!progression || !step || !shouldFadePreview(progression)) {
+    clearPreviewFade();
+    return;
+  }
+
+  const previewChart = document.getElementById('preview-chart');
+  if (!previewChart) {
+    return;
+  }
+
+  try {
+    await ensureSvguitarScriptLoaded();
+    const SVGuitarChord = await waitForChordRenderer();
+    const previewState = getProgressionStepDisplayState(progression, step);
+    renderChordFromTemplate(SVGuitarChord, {
+      containerSelector: '#preview-chart',
+      containerElement: previewChart,
+      state: previewState,
+    });
+
+    previewChart.classList.remove('is-visible');
+    previewChart.style.setProperty('--preview-fade-duration', `${getPreviewDurationMs(progression)}ms`);
+
+    if (appState.transport.previewAnimationFrameId) {
+      window.cancelAnimationFrame(appState.transport.previewAnimationFrameId);
+    }
+
+    appState.transport.previewAnimationFrameId = window.requestAnimationFrame(() => {
+      previewChart.classList.add('is-visible');
+      appState.transport.previewAnimationFrameId = null;
+    });
+  } catch (error) {
+    console.warn('Failed to render preview fade:', error);
+    clearPreviewFade();
+  }
+}
+
 function updateTransportStatus(message = 'Stopped') {
   const node = document.getElementById('progression-transport-status');
   if (node) {
@@ -620,6 +692,8 @@ function applyProgressionStepToMainView(progression, step) {
     return;
   }
 
+  clearPreviewFade();
+
   const resolvedStepIndex = progression.steps.findIndex((item) => item.id === step.id);
 
   const resolvedState = resolveProgressionStepState(progression, step);
@@ -721,6 +795,7 @@ function stepSelectedProgression(direction = 1) {
 
 function stopProgressionPlayback({ preserveView = false, showFirstStep = true } = {}) {
   clearTransportTimer();
+  clearPreviewFade();
   appState.transport.status = 'stopped';
   appState.transport.activeProgressionId = null;
   appState.transport.currentStepIndex = -1;
@@ -794,6 +869,11 @@ function advanceProgressionPlayback() {
     renderProgressionPanel();
   } else {
     playMetronomeClick(false); // subdivision within step
+
+    if (appState.transport.currentBeatInStep === currentStep.beats - 1) {
+      const nextStepIndex = (appState.transport.currentStepIndex + 1) % progression.steps.length;
+      showPreviewFadeForStep(progression, progression.steps[nextStepIndex]);
+    }
   }
 
   renderProgressionTransportState();
@@ -848,6 +928,7 @@ function pauseProgressionPlayback() {
   }
 
   clearTransportTimer();
+  clearPreviewFade();
   appState.transport.status = 'paused';
   renderProgressionTransportState();
 }
@@ -1407,14 +1488,14 @@ function getQualityLabel(quality) {
   return 'Major';
 }
 
-function getChordSymbol() {
-  const note = parseSelectedNote();
-  const qualitySuffix = appState.quality === 'minor' ? 'm' : '';
+function getChordSymbol(state = appState) {
+  const note = parseSelectedNote(state);
+  const qualitySuffix = state.quality === 'minor' ? 'm' : '';
   return `${note.preferredName}${qualitySuffix}`;
 }
 
-function getDegreeIndex() {
-  const parsed = Number(appState.degree);
+function getDegreeIndex(state = appState) {
+  const parsed = Number(state.degree);
   if (!Number.isFinite(parsed)) {
     return 0;
   }
@@ -1492,24 +1573,24 @@ function getVoicingCandidatesByQuality(quality) {
   return [];
 }
 
-function getDegreeSelection() {
-  const keyNote = parseSelectedNote();
-  const degreeIndex = getDegreeIndex();
+function getDegreeSelection(state = appState) {
+  const keyNote = parseSelectedNote(state);
+  const degreeIndex = getDegreeIndex(state);
   const degreeLabel = getDegreeLabelByIndex(degreeIndex);
-  const scaleIntervals = getScaleIntervalsForQuality(appState.quality);
-  const degreeQualities = DEGREE_TRIAD_QUALITIES[appState.quality] || DEGREE_TRIAD_QUALITIES.major;
+  const scaleIntervals = getScaleIntervalsForQuality(state.quality);
+  const degreeQualities = DEGREE_TRIAD_QUALITIES[state.quality] || DEGREE_TRIAD_QUALITIES.major;
   const targetInterval = scaleIntervals[degreeIndex] ?? 0;
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetQuality = degreeQualities[degreeIndex] || 'major';
-  const targetRootName = getNoteNameBySemitone(targetRootSemitone, appState.accidental);
+  const targetRootName = getNoteNameBySemitone(targetRootSemitone, state.accidental);
   const targetSymbol = `${targetRootName}${
     targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
   }`;
 
   return {
     keyRootSemitone: keyNote.semitone,
-    keyQuality: appState.quality,
-    keySymbol: getChordSymbol(),
+    keyQuality: state.quality,
+    keySymbol: getChordSymbol(state),
     degreeIndex,
     degreeLabel,
     isTonic: degreeIndex === 0,
@@ -1519,8 +1600,8 @@ function getDegreeSelection() {
   };
 }
 
-function resolveVoicingForSelection(selection) {
-  const basePattern = findVoicingByState(appState.quality, appState.caged);
+function resolveVoicingForSelection(selection, state = appState) {
+  const basePattern = findVoicingByState(state.quality, state.caged);
   if (!basePattern) {
     throw new Error('No base voicing template found for current selection.');
   }
@@ -1550,7 +1631,7 @@ function resolveVoicingForSelection(selection) {
     const distance = Math.abs(transposed.position - baseTransposed.position);
     const usesOpenPosition = transposed.position === 1;
     const openPenalty = !hasOpenAnchor && usesOpenPosition ? 1 : 0;
-    const sameCagedPenalty = pattern.caged === appState.caged ? 0 : 1;
+    const sameCagedPenalty = pattern.caged === state.caged ? 0 : 1;
 
     if (
       !best ||
@@ -1583,12 +1664,12 @@ function resolveVoicingForSelection(selection) {
   };
 }
 
-function getSelectionLabel(selection = null, resolvedVoicing = null) {
+function getSelectionLabel(selection = null, resolvedVoicing = null, state = appState) {
   if (!selection) {
-    return `${getChordSymbol()} (${getDegreeLabelByIndex(0)}) · ${appState.caged} voicing`;
+    return `${getChordSymbol(state)} (${getDegreeLabelByIndex(0)}) · ${state.caged} voicing`;
   }
 
-  const caged = resolvedVoicing?.caged || appState.caged;
+  const caged = resolvedVoicing?.caged || state.caged;
   return `${selection.targetSymbol} (${selection.degreeLabel}) · ${caged} voicing`;
 }
 
@@ -2275,10 +2356,19 @@ function applyTopRowFilledMarkerStyles(chartElement, fingers) {
   }
 }
 
-function renderChordFromTemplate(SVGuitarChord) {
-  const selection = getDegreeSelection();
-  const resolvedVoicing = resolveVoicingForSelection(selection);
-  const selectionLabel = getSelectionLabel(selection, resolvedVoicing);
+function renderChordFromTemplate(SVGuitarChord, options = {}) {
+  const state = options.state || appState;
+  const containerSelector = options.containerSelector || '#main-chart';
+  const containerElement = options.containerElement || document.querySelector(containerSelector);
+  if (!containerElement) {
+    throw new Error('Chart container not found in DOM.');
+  }
+
+  containerElement.innerHTML = '';
+
+  const selection = getDegreeSelection(state);
+  const resolvedVoicing = resolveVoicingForSelection(selection, state);
+  const selectionLabel = getSelectionLabel(selection, resolvedVoicing, state);
   const transposed = transposeVoicing(
     resolvedVoicing.pattern,
     selection.targetRootSemitone,
@@ -2304,7 +2394,7 @@ function renderChordFromTemplate(SVGuitarChord) {
     diagramFrets,
   });
 
-  const chart = new SVGuitarChord('#main-chart');
+  const chart = new SVGuitarChord(containerSelector);
 
   chart
     .configure({
@@ -2322,8 +2412,7 @@ function renderChordFromTemplate(SVGuitarChord) {
     })
     .draw();
 
-  const chartContainer = document.getElementById('main-chart');
-  applyTopRowFilledMarkerStyles(chartContainer, fingers);
+  applyTopRowFilledMarkerStyles(containerElement, fingers);
 
   return {
     selectionLabel,
@@ -2339,14 +2428,13 @@ async function renderCharts() {
     await ensureSvguitarScriptLoaded();
     const SVGuitarChord = await waitForChordRenderer();
 
-    const chartContainer = document.getElementById('main-chart');
-    if (!chartContainer) {
-      throw new Error('Chart container not found in DOM.');
-    }
+    clearPreviewFade();
 
-    chartContainer.innerHTML = '';
-
-    const renderResult = renderChordFromTemplate(SVGuitarChord);
+    const renderResult = renderChordFromTemplate(SVGuitarChord, {
+      containerSelector: '#main-chart',
+      containerElement: document.getElementById('main-chart'),
+      state: appState,
+    });
     updateSelectionTitle(renderResult.selectionLabel);
 
     const svgCount = document.querySelectorAll('.chart svg').length;
