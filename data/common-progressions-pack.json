@@ -1,0 +1,828 @@
+{
+  "schemaVersion": 1,
+  "savedAt": "2026-04-20T12:00:00.000Z",
+  "progressions": [
+    {
+      "id": "pack-major-01",
+      "name": "C Major \u2013 I V vi IV (Pop)",
+      "keyRoot": "C",
+      "keyAccidental": "",
+      "keyQuality": "major",
+      "tempo": 104,
+      "countInBeats": 4,
+      "previewLead": "quarter",
+      "steps": [
+        {
+          "id": "pack-major-01-s1",
+          "degree": 1,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        },
+        {
+          "id": "pack-major-01-s2",
+          "degree": 5,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        },
+        {
+          "id": "pack-major-01-s3",
+          "degree": 6,
+          "root": "C",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-major-01-s4",
+          "degree": 4,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        }
+      ]
+    },
+    {
+      "id": "pack-major-02",
+      "name": "G Major \u2013 ii V I (Jazz Turnaround)",
+      "keyRoot": "G",
+      "keyAccidental": "",
+      "keyQuality": "major",
+      "tempo": 120,
+      "countInBeats": 4,
+      "previewLead": "eighth",
+      "steps": [
+        {
+          "id": "pack-major-02-s1",
+          "degree": 2,
+          "root": "G",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 2,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-major-02-s2",
+          "degree": 5,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 2,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-major-02-s3",
+          "degree": 1,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        }
+      ]
+    },
+    {
+      "id": "pack-major-03",
+      "name": "D Major \u2013 I IV V (Classic Rock)",
+      "keyRoot": "D",
+      "keyAccidental": "",
+      "keyQuality": "major",
+      "tempo": 132,
+      "countInBeats": 2,
+      "previewLead": "none",
+      "steps": [
+        {
+          "id": "pack-major-03-s1",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-major-03-s2",
+          "degree": 4,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-major-03-s3",
+          "degree": 5,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-major-03-s4",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-major-04",
+      "name": "F Major \u2013 vi IV I V (50s/Pop Loop)",
+      "keyRoot": "F",
+      "keyAccidental": "",
+      "keyQuality": "major",
+      "tempo": 96,
+      "countInBeats": 4,
+      "previewLead": "half",
+      "steps": [
+        {
+          "id": "pack-major-04-s1",
+          "degree": 6,
+          "root": "F",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-major-04-s2",
+          "degree": 4,
+          "root": "F",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-major-04-s3",
+          "degree": 1,
+          "root": "F",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-major-04-s4",
+          "degree": 5,
+          "root": "F",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        }
+      ]
+    },
+    {
+      "id": "pack-minor-01",
+      "name": "A Minor \u2013 i VI III VII (Natural Minor)",
+      "keyRoot": "A",
+      "keyAccidental": "",
+      "keyQuality": "minor",
+      "tempo": 98,
+      "countInBeats": 4,
+      "previewLead": "quarter",
+      "steps": [
+        {
+          "id": "pack-minor-01-s1",
+          "degree": 1,
+          "root": "A",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-minor-01-s2",
+          "degree": 6,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-minor-01-s3",
+          "degree": 3,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-minor-01-s4",
+          "degree": 7,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        }
+      ]
+    },
+    {
+      "id": "pack-minor-02",
+      "name": "E Minor \u2013 i iv v (Minor Blues/Rock)",
+      "keyRoot": "E",
+      "keyAccidental": "",
+      "keyQuality": "minor",
+      "tempo": 116,
+      "countInBeats": 2,
+      "previewLead": "none",
+      "steps": [
+        {
+          "id": "pack-minor-02-s1",
+          "degree": 1,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-minor-02-s2",
+          "degree": 4,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-minor-02-s3",
+          "degree": 5,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-minor-02-s4",
+          "degree": 1,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-minor-03",
+      "name": "D Minor \u2013 i VII VI VII (Modal Minor Loop)",
+      "keyRoot": "D",
+      "keyAccidental": "",
+      "keyQuality": "minor",
+      "tempo": 92,
+      "countInBeats": 4,
+      "previewLead": "half",
+      "steps": [
+        {
+          "id": "pack-minor-03-s1",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "D"
+        },
+        {
+          "id": "pack-minor-03-s2",
+          "degree": 7,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-minor-03-s3",
+          "degree": 6,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-minor-03-s4",
+          "degree": 7,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-minor-04",
+      "name": "C Minor \u2013 i iv VII III (Cinematic Minor)",
+      "keyRoot": "C",
+      "keyAccidental": "",
+      "keyQuality": "minor",
+      "tempo": 84,
+      "countInBeats": 4,
+      "previewLead": "quarter",
+      "steps": [
+        {
+          "id": "pack-minor-04-s1",
+          "degree": 1,
+          "root": "C",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-minor-04-s2",
+          "degree": 4,
+          "root": "C",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-minor-04-s3",
+          "degree": 7,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-minor-04-s4",
+          "degree": 3,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        }
+      ]
+    },
+    {
+      "id": "pack-dorian-01",
+      "name": "D Dorian \u2013 i IV (Classic Dorian Vamp)",
+      "keyRoot": "D",
+      "keyAccidental": "",
+      "keyQuality": "dorian",
+      "tempo": 112,
+      "countInBeats": 2,
+      "previewLead": "none",
+      "steps": [
+        {
+          "id": "pack-dorian-01-s1",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "D"
+        },
+        {
+          "id": "pack-dorian-01-s2",
+          "degree": 4,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-dorian-01-s3",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "D"
+        },
+        {
+          "id": "pack-dorian-01-s4",
+          "degree": 4,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-dorian-02",
+      "name": "A Dorian \u2013 i VII IV (Funk/Modal Groove)",
+      "keyRoot": "A",
+      "keyAccidental": "",
+      "keyQuality": "dorian",
+      "tempo": 108,
+      "countInBeats": 4,
+      "previewLead": "eighth",
+      "steps": [
+        {
+          "id": "pack-dorian-02-s1",
+          "degree": 1,
+          "root": "A",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-dorian-02-s2",
+          "degree": 7,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-dorian-02-s3",
+          "degree": 4,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-dorian-02-s4",
+          "degree": 1,
+          "root": "A",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        }
+      ]
+    },
+    {
+      "id": "pack-dorian-03",
+      "name": "E Dorian \u2013 i ii IV (Modal Expansion)",
+      "keyRoot": "E",
+      "keyAccidental": "",
+      "keyQuality": "dorian",
+      "tempo": 102,
+      "countInBeats": 4,
+      "previewLead": "quarter",
+      "steps": [
+        {
+          "id": "pack-dorian-03-s1",
+          "degree": 1,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-dorian-03-s2",
+          "degree": 2,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-dorian-03-s3",
+          "degree": 4,
+          "root": "E",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-dorian-03-s4",
+          "degree": 1,
+          "root": "E",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-dorian-04",
+      "name": "G Dorian \u2013 i v IV i (Minor-Modal Cadence)",
+      "keyRoot": "G",
+      "keyAccidental": "",
+      "keyQuality": "dorian",
+      "tempo": 94,
+      "countInBeats": 4,
+      "previewLead": "half",
+      "steps": [
+        {
+          "id": "pack-dorian-04-s1",
+          "degree": 1,
+          "root": "G",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-dorian-04-s2",
+          "degree": 5,
+          "root": "G",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-dorian-04-s3",
+          "degree": 4,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-dorian-04-s4",
+          "degree": 1,
+          "root": "G",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        }
+      ]
+    },
+    {
+      "id": "pack-mixo-01",
+      "name": "G Mixolydian \u2013 I bVII IV (Rock Standard)",
+      "keyRoot": "G",
+      "keyAccidental": "",
+      "keyQuality": "mixolydian",
+      "tempo": 124,
+      "countInBeats": 2,
+      "previewLead": "none",
+      "steps": [
+        {
+          "id": "pack-mixo-01-s1",
+          "degree": 1,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-mixo-01-s2",
+          "degree": 7,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-mixo-01-s3",
+          "degree": 4,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        },
+        {
+          "id": "pack-mixo-01-s4",
+          "degree": 1,
+          "root": "G",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "G"
+        }
+      ]
+    },
+    {
+      "id": "pack-mixo-02",
+      "name": "D Mixolydian \u2013 I bVII I IV (Jam Band)",
+      "keyRoot": "D",
+      "keyAccidental": "",
+      "keyQuality": "mixolydian",
+      "tempo": 118,
+      "countInBeats": 4,
+      "previewLead": "eighth",
+      "steps": [
+        {
+          "id": "pack-mixo-02-s1",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-mixo-02-s2",
+          "degree": 7,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-mixo-02-s3",
+          "degree": 1,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        },
+        {
+          "id": "pack-mixo-02-s4",
+          "degree": 4,
+          "root": "D",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        }
+      ]
+    },
+    {
+      "id": "pack-mixo-03",
+      "name": "A Mixolydian \u2013 I IV bVII IV (Blues Rock)",
+      "keyRoot": "A",
+      "keyAccidental": "",
+      "keyQuality": "mixolydian",
+      "tempo": 110,
+      "countInBeats": 4,
+      "previewLead": "quarter",
+      "steps": [
+        {
+          "id": "pack-mixo-03-s1",
+          "degree": 1,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-mixo-03-s2",
+          "degree": 4,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-mixo-03-s3",
+          "degree": 7,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        },
+        {
+          "id": "pack-mixo-03-s4",
+          "degree": 4,
+          "root": "A",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "E"
+        }
+      ]
+    },
+    {
+      "id": "pack-mixo-04",
+      "name": "C Mixolydian \u2013 I bVII IV V (Extended Rock Cadence)",
+      "keyRoot": "C",
+      "keyAccidental": "",
+      "keyQuality": "mixolydian",
+      "tempo": 106,
+      "countInBeats": 4,
+      "previewLead": "half",
+      "steps": [
+        {
+          "id": "pack-mixo-04-s1",
+          "degree": 1,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        },
+        {
+          "id": "pack-mixo-04-s2",
+          "degree": 7,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        },
+        {
+          "id": "pack-mixo-04-s3",
+          "degree": 4,
+          "root": "C",
+          "accidental": "",
+          "quality": "major",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "C"
+        },
+        {
+          "id": "pack-mixo-04-s4",
+          "degree": 5,
+          "root": "C",
+          "accidental": "",
+          "quality": "minor",
+          "useDiatonicChord": true,
+          "beats": 4,
+          "cagedArea": "A"
+        }
+      ]
+    }
+  ]
+}
