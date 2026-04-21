@@ -110,6 +110,26 @@ const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 const CHORD_EXTENSION_OPTIONS = ['triad', 'seventh', 'ninth'];
+const NINTH_VOICING_FALLBACKS = {
+  major9: {
+    C: ['A', 'E'],
+    G: ['E', 'A'],
+    D: ['E', 'A'],
+  },
+  minor9: {
+    C: ['A', 'E'],
+    G: ['E', 'A'],
+    D: ['E', 'A'],
+  },
+  dominant9: {
+    C: ['A', 'G', 'E'],
+    D: ['A', 'G', 'E'],
+  },
+  'half-diminished9': {
+    C: ['A', 'D', 'E'],
+    G: ['E', 'A', 'D'],
+  },
+};
 const DEGREE_TRIAD_QUALITIES = {
   major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished'],
   minor: ['minor', 'diminished', 'major', 'minor', 'minor', 'major', 'major'],
@@ -215,6 +235,7 @@ function createDefaultProgressionStep(defaults = {}) {
     root: NATURAL_NOTE_TO_SEMITONE[defaults.root] !== undefined ? defaults.root : 'A',
     accidental: normalizeAccidental(defaults.accidental),
     quality: defaults.quality === 'minor' || defaults.quality === 'diminished' ? defaults.quality : 'major',
+    extension: CHORD_EXTENSION_OPTIONS.includes(defaults.extension) ? defaults.extension : 'triad',
     useDiatonicChord: true,
     beats: 4,
     cagedArea: 'C',
@@ -252,6 +273,7 @@ function sanitizeProgressionStep(step = {}) {
     root: NATURAL_NOTE_TO_SEMITONE[step.root] !== undefined ? step.root : 'A',
     accidental: normalizeAccidental(step.accidental),
     quality: step.quality === 'minor' || step.quality === 'diminished' ? step.quality : 'major',
+    extension: CHORD_EXTENSION_OPTIONS.includes(step.extension) ? step.extension : 'triad',
     useDiatonicChord: step.useDiatonicChord !== false,
     beats: Math.min(16, Math.max(1, Number(step.beats) || 4)),
     cagedArea: CAGED_POSITIONS.includes(step.cagedArea) ? step.cagedArea : 'C',
@@ -460,12 +482,14 @@ function resolveProgressionStepState(progression, step) {
     root: progression.keyRoot,
     accidental: progression.keyAccidental,
     quality: progression.keyQuality,
+    extension: step.extension,
     degree: step.degree,
   };
   return {
     root: step.useDiatonicChord ? keyState.root : step.root,
     accidental: step.useDiatonicChord ? keyState.accidental : normalizeAccidental(step.accidental),
     quality: step.useDiatonicChord ? keyState.quality : step.quality,
+    extension: step.extension,
     caged: step.cagedArea,
     degree: step.degree,
   };
@@ -770,6 +794,7 @@ function applyProgressionStepToMainView(progression, step) {
   appState.root = resolvedState.root;
   appState.accidental = resolvedState.accidental;
   appState.quality = resolvedState.quality;
+  appState.extension = resolvedState.extension;
   appState.caged = resolvedState.caged;
   appState.degree = resolvedState.degree;
   appState.progressionKeyQuality = progression.keyQuality;
@@ -784,6 +809,7 @@ function applyProgressionStepToMainView(progression, step) {
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
+  const chordType = document.getElementById('chord-type');
   if (root) {
     root.value = appState.root;
   }
@@ -792,6 +818,9 @@ function applyProgressionStepToMainView(progression, step) {
   }
   if (quality) {
     quality.value = appState.quality;
+  }
+  if (chordType) {
+    chordType.value = appState.extension;
   }
 
   const cagedButtons = document.getElementById('caged-buttons');
@@ -1070,6 +1099,7 @@ function addProgressionStep() {
       root: appState.progressionDraft.keyRoot,
       accidental: appState.progressionDraft.keyAccidental,
       quality: appState.progressionDraft.keyQuality,
+      extension: appState.extension,
     })
   );
   renderProgressionPanel();
@@ -1310,6 +1340,15 @@ function renderProgressionSteps() {
                 <option value="major"${step.quality === 'major' ? ' selected' : ''}>Major</option>
                 <option value="minor"${step.quality === 'minor' ? ' selected' : ''}>Minor</option>
                 <option value="diminished"${step.quality === 'diminished' ? ' selected' : ''}>Diminished</option>
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Chord type</span>
+              <select data-step-field="extension">
+                <option value="triad"${step.extension === 'triad' ? ' selected' : ''}>Triad</option>
+                <option value="seventh"${step.extension === 'seventh' ? ' selected' : ''}>7th</option>
+                <option value="ninth"${step.extension === 'ninth' ? ' selected' : ''}>9th</option>
               </select>
             </label>
 
@@ -1779,7 +1818,18 @@ function resolveVoicingForSelection(selection, state = appState) {
     };
   }
 
-  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetTriadQuality || selection.targetQuality);
+  let candidatePatterns = getVoicingCandidatesByQuality(selection.targetTriadQuality || selection.targetQuality);
+
+  if (state.extension === 'ninth') {
+    const preferredCaged = NINTH_VOICING_FALLBACKS[selection.targetQuality]?.[state.caged];
+    if (Array.isArray(preferredCaged) && preferredCaged.length > 0) {
+      const filtered = candidatePatterns.filter((pattern) => preferredCaged.includes(pattern.caged));
+      if (filtered.length > 0) {
+        candidatePatterns = filtered;
+      }
+    }
+  }
+
   if (candidatePatterns.length === 0) {
     throw new Error(`No ${selection.targetTriadQuality || selection.targetQuality} voicing templates available.`);
   }
