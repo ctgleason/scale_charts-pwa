@@ -40,7 +40,7 @@
           "quality": "minor",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "A"
+          "cagedArea": "C"
         },
         {
           "id": "pack-major-01-s4",
@@ -332,7 +332,7 @@
           "quality": "major",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "E"
+          "cagedArea": "D"
         },
         {
           "id": "pack-minor-03-s3",
@@ -342,7 +342,7 @@
           "quality": "major",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "E"
+          "cagedArea": "D"
         },
         {
           "id": "pack-minor-03-s4",
@@ -352,7 +352,7 @@
           "quality": "major",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "E"
+          "cagedArea": "D"
         }
       ]
     },
@@ -436,7 +436,7 @@
           "quality": "major",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "E"
+          "cagedArea": "D"
         },
         {
           "id": "pack-dorian-01-s3",
@@ -456,7 +456,7 @@
           "quality": "major",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "E"
+          "cagedArea": "D"
         }
       ]
     },
@@ -820,7 +820,7 @@
           "quality": "minor",
           "useDiatonicChord": true,
           "beats": 4,
-          "cagedArea": "A"
+          "cagedArea": "C"
         }
       ]
     }
