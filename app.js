@@ -124,8 +124,7 @@ const NINTH_VOICING_FALLBACKS = {
   dominant9: {
     C: ['A', 'G', 'E'],
     D: ['A', 'G', 'E'],
-  },
-  'half-diminished9': {
+  // ── Embedded 9th-chord voicings (A and E shapes only — the two practical grips) ──
     C: ['A', 'D', 'E'],
     G: ['E', 'A', 'D'],
   },
@@ -1953,19 +1952,19 @@ function getVoicingCandidatesByQuality(quality) {
   }
 
   if (quality === 'major9') {
-    return getVoicingCandidatesByQuality('major7');
+    return EMBEDDED_MAJOR9_VOICINGS;
   }
 
   if (quality === 'minor9') {
-    return getVoicingCandidatesByQuality('minor7');
+    return EMBEDDED_MINOR9_VOICINGS;
   }
 
   if (quality === 'dominant9') {
-    return getVoicingCandidatesByQuality('dominant7');
+    return EMBEDDED_DOMINANT9_VOICINGS;
   }
 
   if (quality === 'half-diminished9') {
-    return getVoicingCandidatesByQuality('half-diminished7');
+    return EMBEDDED_HALF_DIMINISHED9_VOICINGS;
   }
 
   if (quality === 'diminished') {
@@ -2039,11 +2038,31 @@ function resolveVoicingForSelection(selection, state = appState) {
 
   const baseTransposed = transposeVoicing(basePattern, selection.keyRootSemitone);
   if (selection.isTonic) {
-    const tonicTransposed = transposeVoicing(basePattern, selection.targetRootSemitone);
+    if (state.extension !== 'ninth') {
+      // triad / seventh: use the anchor shape directly
+      const tonicTransposed = transposeVoicing(basePattern, selection.targetRootSemitone);
+      return {
+        pattern: basePattern,
+        transposed: tonicTransposed,
+        caged: basePattern.caged,
+        anchorPosition: baseTransposed.position,
+      };
+    }
+    // ninth: snap to the nearest A/E 9th shape (same proximity logic as non-tonic)
+    const tonicNinthCandidates = getVoicingCandidatesByQuality(selection.targetQuality);
+    let bestTonic = null;
+    for (const pattern of tonicNinthCandidates) {
+      const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
+      const distance = Math.abs(transposed.position - baseTransposed.position);
+      if (!bestTonic || distance < bestTonic.distance ||
+          (distance === bestTonic.distance && transposed.position < bestTonic.transposed.position)) {
+        bestTonic = { pattern, transposed, distance };
+      }
+    }
     return {
-      pattern: basePattern,
-      transposed: tonicTransposed,
-      caged: basePattern.caged,
+      pattern: bestTonic.pattern,
+      transposed: bestTonic.transposed,
+      caged: bestTonic.pattern.caged,
       anchorPosition: baseTransposed.position,
     };
   }
