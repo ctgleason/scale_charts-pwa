@@ -1738,10 +1738,218 @@ const EMBEDDED_DIMINISHED_VOICINGS = [
   },
 ];
 
+const EMBEDDED_MAJOR7_VOICINGS = [
+  {
+    id: 'fallback-voicing-major7-c',
+    label: 'Major 7th',
+    type: 'voicing',
+    quality: 'major7',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 2, 0, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-major7-a',
+    label: 'Major 7th',
+    type: 'voicing',
+    quality: 'major7',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 1, 2, 0],
+  },
+  {
+    id: 'fallback-voicing-major7-g',
+    label: 'Major 7th',
+    type: 'voicing',
+    quality: 'major7',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 2, 0, 0, 0, 2],
+  },
+  {
+    id: 'fallback-voicing-major7-e',
+    label: 'Major 7th',
+    type: 'voicing',
+    quality: 'major7',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 1, 1, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-major7-d',
+    label: 'Major 7th',
+    type: 'voicing',
+    quality: 'major7',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 2, 2],
+  },
+];
+
+const EMBEDDED_MINOR7_VOICINGS = [
+  {
+    id: 'fallback-voicing-minor7-c',
+    label: 'Minor 7th',
+    type: 'voicing',
+    quality: 'minor7',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 5, 3, 4, 3],
+  },
+  {
+    id: 'fallback-voicing-minor7-a',
+    label: 'Minor 7th',
+    type: 'voicing',
+    quality: 'minor7',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 0, 1, 0],
+  },
+  {
+    id: 'fallback-voicing-minor7-g',
+    label: 'Minor 7th',
+    type: 'voicing',
+    quality: 'minor7',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 'x', 3, 3, 3, 3],
+  },
+  {
+    id: 'fallback-voicing-minor7-e',
+    label: 'Minor 7th',
+    type: 'voicing',
+    quality: 'minor7',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 0, 0, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-minor7-d',
+    label: 'Minor 7th',
+    type: 'voicing',
+    quality: 'minor7',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 1, 1],
+  },
+];
+
+const EMBEDDED_DOMINANT7_VOICINGS = [
+  {
+    id: 'fallback-voicing-dominant7-c',
+    label: 'Dominant 7th',
+    type: 'voicing',
+    quality: 'dominant7',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 2, 3, 1, 0],
+  },
+  {
+    id: 'fallback-voicing-dominant7-a',
+    label: 'Dominant 7th',
+    type: 'voicing',
+    quality: 'dominant7',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 0, 2, 0],
+  },
+  {
+    id: 'fallback-voicing-dominant7-g',
+    label: 'Dominant 7th',
+    type: 'voicing',
+    quality: 'dominant7',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 2, 0, 0, 0, 1],
+  },
+  {
+    id: 'fallback-voicing-dominant7-e',
+    label: 'Dominant 7th',
+    type: 'voicing',
+    quality: 'dominant7',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 0, 1, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-dominant7-d',
+    label: 'Dominant 7th',
+    type: 'voicing',
+    quality: 'dominant7',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 1, 2],
+  },
+];
+
+const EMBEDDED_HALF_DIMINISHED7_VOICINGS = [
+  {
+    id: 'fallback-voicing-halfdim7-c',
+    label: 'Half-diminished 7th',
+    type: 'voicing',
+    quality: 'half-diminished7',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 4, 3, 4, 'x'],
+  },
+  {
+    id: 'fallback-voicing-halfdim7-a',
+    label: 'Half-diminished 7th',
+    type: 'voicing',
+    quality: 'half-diminished7',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 1, 0, 1, 'x'],
+  },
+  {
+    id: 'fallback-voicing-halfdim7-g',
+    label: 'Half-diminished 7th',
+    type: 'voicing',
+    quality: 'half-diminished7',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 'x', 2, 3, 2, 'x'],
+  },
+  {
+    id: 'fallback-voicing-halfdim7-e',
+    label: 'Half-diminished 7th',
+    type: 'voicing',
+    quality: 'half-diminished7',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 1, 0, 0, 3, 0],
+  },
+  {
+    id: 'fallback-voicing-halfdim7-d',
+    label: 'Half-diminished 7th',
+    type: 'voicing',
+    quality: 'half-diminished7',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 1, 1, 1],
+  },
+];
+
 function getVoicingCandidatesByQuality(quality) {
   const matches = catalog.voicings.filter((voicing) => voicing.quality === quality);
   if (matches.length > 0) {
     return matches;
+  }
+
+  if (quality === 'major7') {
+    return EMBEDDED_MAJOR7_VOICINGS;
+  }
+
+  if (quality === 'minor7') {
+    return EMBEDDED_MINOR7_VOICINGS;
+  }
+
+  if (quality === 'dominant7') {
+    return EMBEDDED_DOMINANT7_VOICINGS;
+  }
+
+  if (quality === 'half-diminished7') {
+    return EMBEDDED_HALF_DIMINISHED7_VOICINGS;
   }
 
   if (quality === 'diminished') {
@@ -1802,7 +2010,14 @@ function getDegreeSelection(state = appState) {
 }
 
 function resolveVoicingForSelection(selection, state = appState) {
-  const basePattern = findVoicingByState(getTriadVoicingQuality(state.quality), state.caged);
+  const anchorQuality =
+    state.extension === 'triad'
+      ? getTriadVoicingQuality(state.quality)
+      : state.extension === 'seventh'
+        ? getExtendedChordQuality(getTriadVoicingQuality(state.quality), 'seventh')
+        : getTriadVoicingQuality(state.quality);
+  const baseCandidates = getVoicingCandidatesByQuality(anchorQuality);
+  const basePattern = baseCandidates.find((pattern) => pattern.caged === state.caged) || findVoicingByState(getTriadVoicingQuality(state.quality), state.caged);
   if (!basePattern) {
     throw new Error('No base voicing template found for current selection.');
   }
@@ -1818,7 +2033,9 @@ function resolveVoicingForSelection(selection, state = appState) {
     };
   }
 
-  let candidatePatterns = getVoicingCandidatesByQuality(selection.targetTriadQuality || selection.targetQuality);
+  let candidatePatterns = getVoicingCandidatesByQuality(
+    state.extension === 'seventh' ? selection.targetQuality : (selection.targetTriadQuality || selection.targetQuality)
+  );
 
   if (state.extension === 'ninth') {
     const preferredCaged = NINTH_VOICING_FALLBACKS[selection.targetQuality]?.[state.caged];
