@@ -19,7 +19,7 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.20+bundled-common-progressions';
+const APP_VERSION = 'v2026.04.21+diatonic-7th-9th';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
@@ -109,11 +109,31 @@ const NATURAL_NOTE_TO_SEMITONE = {
 const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+const CHORD_EXTENSION_OPTIONS = ['triad', 'seventh', 'ninth'];
 const DEGREE_TRIAD_QUALITIES = {
   major: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished'],
   minor: ['minor', 'diminished', 'major', 'minor', 'minor', 'major', 'major'],
   dorian: ['minor', 'minor', 'major', 'major', 'minor', 'diminished', 'major'],
   mixolydian: ['major', 'minor', 'diminished', 'major', 'minor', 'minor', 'major'],
+};
+const DEGREE_SEVENTH_QUALITIES = {
+  major: ['major7', 'minor7', 'minor7', 'major7', 'dominant7', 'minor7', 'half-diminished7'],
+  minor: ['minor7', 'half-diminished7', 'major7', 'minor7', 'minor7', 'major7', 'dominant7'],
+  dorian: ['minor7', 'minor7', 'major7', 'dominant7', 'minor7', 'half-diminished7', 'major7'],
+  mixolydian: ['dominant7', 'minor7', 'half-diminished7', 'major7', 'minor7', 'minor7', 'major7'],
+};
+const CHORD_QUALITY_INTERVALS = {
+  major: [0, 4, 7],
+  minor: [0, 3, 7],
+  diminished: [0, 3, 6],
+  major7: [0, 4, 7, 11],
+  minor7: [0, 3, 7, 10],
+  dominant7: [0, 4, 7, 10],
+  'half-diminished7': [0, 3, 6, 10],
+  major9: [0, 4, 7, 11, 2],
+  minor9: [0, 3, 7, 10, 2],
+  dominant9: [0, 4, 7, 10, 2],
+  'half-diminished9': [0, 3, 6, 10, 2],
 };
 
 function normalizeSemitone(value) {
@@ -155,6 +175,7 @@ const appState = {
   root: 'A',
   accidental: '',
   quality: 'major',
+  extension: 'triad',
   caged: 'C',
   degree: 1,
   overlays: {},
@@ -1573,8 +1594,43 @@ function getQualityLabel(quality) {
 
 function getChordSymbol(state = appState) {
   const note = parseSelectedNote(state);
-  const qualitySuffix = state.quality === 'minor' ? 'm' : '';
-  return `${note.preferredName}${qualitySuffix}`;
+  return `${note.preferredName}${getQualitySuffix(getExtendedChordQuality(state.quality, state.extension))}`;
+}
+
+function getExtendedChordQuality(baseQuality, extension = appState.extension) {
+  if (extension === 'triad') {
+    return baseQuality;
+  }
+
+  const baseToSeventh = {
+    major: extension === 'ninth' ? 'major9' : 'major7',
+    minor: extension === 'ninth' ? 'minor9' : 'minor7',
+    diminished: extension === 'ninth' ? 'half-diminished9' : 'half-diminished7',
+    major7: extension === 'ninth' ? 'major9' : 'major7',
+    minor7: extension === 'ninth' ? 'minor9' : 'minor7',
+    dominant7: extension === 'ninth' ? 'dominant9' : 'dominant7',
+    'half-diminished7': extension === 'ninth' ? 'half-diminished9' : 'half-diminished7',
+    major9: 'major9',
+    minor9: 'minor9',
+    dominant9: 'dominant9',
+    'half-diminished9': 'half-diminished9',
+  };
+
+  return baseToSeventh[baseQuality] || baseQuality;
+}
+
+function getQualitySuffix(quality) {
+  if (quality === 'minor') return 'm';
+  if (quality === 'diminished') return 'dim';
+  if (quality === 'major7') return 'maj7';
+  if (quality === 'minor7') return 'm7';
+  if (quality === 'dominant7') return '7';
+  if (quality === 'half-diminished7') return 'm7♭5';
+  if (quality === 'major9') return 'maj9';
+  if (quality === 'minor9') return 'm9';
+  if (quality === 'dominant9') return '9';
+  if (quality === 'half-diminished9') return 'm9♭5';
+  return '';
 }
 
 function getDegreeIndex(state = appState) {
@@ -1677,14 +1733,20 @@ function getDegreeSelection(state = appState) {
     ? appState.progressionKeyQuality
     : state.quality;
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
-  const degreeQualities = DEGREE_TRIAD_QUALITIES[keyQuality] || DEGREE_TRIAD_QUALITIES.major;
+  const triadQualities = DEGREE_TRIAD_QUALITIES[keyQuality] || DEGREE_TRIAD_QUALITIES.major;
+  const seventhQualities = DEGREE_SEVENTH_QUALITIES[keyQuality] || DEGREE_SEVENTH_QUALITIES.major;
   const targetInterval = scaleIntervals[degreeIndex] ?? 0;
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
-  const targetQuality = degreeQualities[degreeIndex] || 'major';
+  const targetTriadQuality = triadQualities[degreeIndex] || 'major';
+  const targetSeventhQuality = seventhQualities[degreeIndex] || 'major7';
+  const targetQuality =
+    state.extension === 'triad'
+      ? targetTriadQuality
+      : state.extension === 'ninth'
+        ? getExtendedChordQuality(targetSeventhQuality, 'ninth')
+        : targetSeventhQuality;
   const targetRootName = getNoteNameBySemitone(targetRootSemitone, state.accidental);
-  const targetSymbol = `${targetRootName}${
-    targetQuality === 'minor' ? 'm' : targetQuality === 'diminished' ? 'dim' : ''
-  }`;
+  const targetSymbol = `${targetRootName}${getQualitySuffix(targetQuality)}`;
 
   return {
     keyRootSemitone: keyNote.semitone,
@@ -1694,6 +1756,7 @@ function getDegreeSelection(state = appState) {
     degreeLabel,
     isTonic: degreeIndex === 0,
     targetRootSemitone,
+    targetTriadQuality,
     targetQuality,
     targetSymbol,
   };
@@ -1716,9 +1779,9 @@ function resolveVoicingForSelection(selection, state = appState) {
     };
   }
 
-  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetQuality);
+  const candidatePatterns = getVoicingCandidatesByQuality(selection.targetTriadQuality || selection.targetQuality);
   if (candidatePatterns.length === 0) {
-    throw new Error(`No ${selection.targetQuality} voicing templates available.`);
+    throw new Error(`No ${selection.targetTriadQuality || selection.targetQuality} voicing templates available.`);
   }
 
   const hasOpenAnchor = baseTransposed.position === 1;
@@ -1973,20 +2036,36 @@ function getOverlayById(id) {
 }
 
 function getScaleIntervalsForQuality(quality) {
+  const normalizedQuality =
+    quality === 'minor7' || quality === 'minor9'
+      ? 'minor'
+      : quality === 'diminished' || quality === 'half-diminished7' || quality === 'half-diminished9'
+        ? 'minor'
+        : quality === 'major7' || quality === 'major9' || quality === 'dominant7' || quality === 'dominant9'
+          ? 'major'
+          : quality;
   const match = catalog.scales.find((pattern) => pattern.quality === quality);
   if (match && Array.isArray(match.intervals) && match.intervals.length > 0) {
     return match.intervals;
   }
 
-  if (quality === 'minor') return [0, 2, 3, 5, 7, 8, 10];
-  if (quality === 'dorian') return [0, 2, 3, 5, 7, 9, 10];
-  if (quality === 'mixolydian') return [0, 2, 4, 5, 7, 9, 10];
+  if (normalizedQuality === 'minor') return [0, 2, 3, 5, 7, 8, 10];
+  if (normalizedQuality === 'dorian') return [0, 2, 3, 5, 7, 9, 10];
+  if (normalizedQuality === 'mixolydian') return [0, 2, 4, 5, 7, 9, 10];
   return [0, 2, 4, 5, 7, 9, 11];
 }
 
 function getPentatonicIntervalsForQuality(quality) {
-  // minor and dorian use minor pentatonic; major and mixolydian use major pentatonic
-  return (quality === 'minor' || quality === 'dorian') ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
+  // minor-family chords/modes use minor pentatonic; major-family chords/modes use major pentatonic
+  const isMinorFamily =
+    quality === 'minor' ||
+    quality === 'dorian' ||
+    quality === 'minor7' ||
+    quality === 'minor9' ||
+    quality === 'diminished' ||
+    quality === 'half-diminished7' ||
+    quality === 'half-diminished9';
+  return isMinorFamily ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9];
 }
 
 function buildDegreeLabelMap(scaleIntervals) {
@@ -1998,13 +2077,12 @@ function buildDegreeLabelMap(scaleIntervals) {
 }
 
 function buildTriadLabelMap(quality) {
-  const intervals =
-    quality === 'minor' ? [0, 3, 7] : quality === 'diminished' ? [0, 3, 6] : [0, 4, 7];
-  const labels = ['1', '3', '5'];
+  const intervals = CHORD_QUALITY_INTERVALS[quality] || CHORD_QUALITY_INTERVALS.major;
+  const labels = ['1', '3', '5', '7', '9'];
   const labelMap = new Map();
 
   intervals.forEach((interval, index) => {
-    labelMap.set(interval, labels[index]);
+    labelMap.set(normalizeSemitone(interval), labels[index] || '');
   });
 
   return labelMap;
@@ -2075,14 +2153,17 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
   const keyPentIntervals = getPentatonicIntervalsForQuality(keyQuality);
   const chordPentIntervals = getPentatonicIntervalsForQuality(displayedChordQuality);
+  const chordToneIntervals = CHORD_QUALITY_INTERVALS[displayedChordQuality] || CHORD_QUALITY_INTERVALS.major;
 
   const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
   const keyPentSet = new Set(keyPentIntervals.map((interval) => normalizeSemitone(interval)));
   const chordPentSet = new Set(chordPentIntervals.map((interval) => normalizeSemitone(interval)));
+  const chordToneSet = new Set(chordToneIntervals.map((interval) => normalizeSemitone(interval)));
   const keyDegreeLabels = buildDegreeLabelMap(scaleIntervals);
   const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
   const chordPentLabels = buildChordPentatonicLabelMap(displayedChordQuality);
   const voicingPositionSet = new Set();
+  const showAllChordTones = appState.extension !== 'triad';
 
   for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
     const absoluteFret = transposed.absoluteFrets[stringTemplateIndex];
@@ -2169,6 +2250,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     const allowOpenOverlay = isVoicingOpen || diagramPosition === 1;
     const isOpenKeyPent = keyPentSet.has(openIntervalFromKeyRoot);
     const isOpenChordPent = chordPentSet.has(openIntervalFromDisplayedChordRoot);
+    const isOpenChordTone = chordToneSet.has(openIntervalFromDisplayedChordRoot);
     const isOpenScale = scaleSet.has(openIntervalFromKeyRoot);
 
     const openChordText = useDisplayedChordDegreeLabels
@@ -2176,7 +2258,9 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       : keyDegreeLabels.get(openIntervalFromKeyRoot) || '';
     const hasOpenChordLabel = openChordText !== '';
 
-    if (showChord && isVoicingOpen && chordOverlay && hasOpenChordLabel) {
+    const isOpenChordHighlight = showAllChordTones ? isOpenChordTone : isVoicingOpen;
+
+    if (showChord && isOpenChordHighlight && chordOverlay && hasOpenChordLabel) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, chordOverlay.color, 1, {
         text: openChordText,
         textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
@@ -2211,6 +2295,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       );
 
       const isPreChord = showChord && typeof stringFret === 'number' && stringFret === preFretAbsolute;
+      const isPreChordTone = chordToneSet.has(preIntervalFromDisplayedChordRoot);
       const isPreKeyPent = keyPentSet.has(preIntervalFromKeyRoot);
       const isPreChordPent = chordPentSet.has(preIntervalFromDisplayedChordRoot);
       const isPreScale = scaleSet.has(preIntervalFromKeyRoot);
@@ -2220,7 +2305,9 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         : keyDegreeLabels.get(preIntervalFromKeyRoot) || '';
       const hasPreChordLabel = preChordText !== '';
 
-      if (isPreChord && chordOverlay && hasPreChordLabel) {
+      const isPreChordHighlight = showAllChordTones ? isPreChordTone : isPreChord;
+
+      if (isPreChordHighlight && chordOverlay && hasPreChordLabel) {
         addPreFretMarker(stringIndex, 1, {
           text: preChordText,
           textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
@@ -2269,6 +2356,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
       const positionKey = `${stringIndex}:${displayFret}`;
       const isVoicingPosition = voicingPositionSet.has(positionKey);
+      const isChordTone = chordToneSet.has(intervalFromDisplayedChordRoot);
       const isKeyPent = keyPentSet.has(intervalFromKeyRoot);
       const isChordPent = chordPentSet.has(intervalFromDisplayedChordRoot);
       const isScale = scaleSet.has(intervalFromKeyRoot);
@@ -2278,7 +2366,9 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         : keyDegreeLabels.get(intervalFromKeyRoot) || '';
       const hasChordLabel = chordText !== '';
 
-      if (showChord && isVoicingPosition && chordOverlay && hasChordLabel) {
+      const isChordHighlight = showAllChordTones ? isChordTone : isVoicingPosition;
+
+      if (showChord && isChordHighlight && chordOverlay && hasChordLabel) {
         addMarker(stringIndex, displayFret, intervalFromKeyRoot, chordOverlay.color, 1, {
           text: chordText,
           textColor: useDisplayedChordDegreeLabels ? chordOverlay.color : '#ffffff',
@@ -2546,7 +2636,7 @@ async function renderCharts() {
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
-      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nKey: ${getChordSymbol()}\nDisplayed chord: ${renderResult.renderedDegreeLabel} (${renderResult.renderedChordSymbol})`,
+      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nKey: ${getChordSymbol()}\nChord type: ${appState.extension}\nDisplayed chord: ${renderResult.renderedDegreeLabel} (${renderResult.renderedChordSymbol})`,
       svgCount === 0
     );
 
@@ -2568,16 +2658,18 @@ function setupControls() {
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
+  const chordType = document.getElementById('chord-type');
   const cagedButtons = document.getElementById('caged-buttons');
   const degreeButtons = document.getElementById('degree-buttons');
 
-  if (!root || !accidental || !quality || !cagedButtons || !degreeButtons) {
+  if (!root || !accidental || !quality || !chordType || !cagedButtons || !degreeButtons) {
     return;
   }
 
   root.value = appState.root;
   accidental.value = appState.accidental;
   quality.value = appState.quality;
+  chordType.value = appState.extension;
 
   root.addEventListener('change', () => {
     clearProgressionSelectionContext();
@@ -2596,6 +2688,13 @@ function setupControls() {
   quality.addEventListener('change', () => {
     clearProgressionSelectionContext();
     appState.quality = quality.value;
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  chordType.addEventListener('change', () => {
+    clearProgressionSelectionContext();
+    appState.extension = CHORD_EXTENSION_OPTIONS.includes(chordType.value) ? chordType.value : 'triad';
     updateSelectionTitle();
     renderCharts();
   });
