@@ -1952,6 +1952,22 @@ function getVoicingCandidatesByQuality(quality) {
     return EMBEDDED_HALF_DIMINISHED7_VOICINGS;
   }
 
+  if (quality === 'major9') {
+    return getVoicingCandidatesByQuality('major7');
+  }
+
+  if (quality === 'minor9') {
+    return getVoicingCandidatesByQuality('minor7');
+  }
+
+  if (quality === 'dominant9') {
+    return getVoicingCandidatesByQuality('dominant7');
+  }
+
+  if (quality === 'half-diminished9') {
+    return getVoicingCandidatesByQuality('half-diminished7');
+  }
+
   if (quality === 'diminished') {
     return EMBEDDED_DIMINISHED_VOICINGS;
   }
@@ -2013,9 +2029,8 @@ function resolveVoicingForSelection(selection, state = appState) {
   const anchorQuality =
     state.extension === 'triad'
       ? getTriadVoicingQuality(state.quality)
-      : state.extension === 'seventh'
-        ? getExtendedChordQuality(getTriadVoicingQuality(state.quality), 'seventh')
-        : getTriadVoicingQuality(state.quality);
+      : getExtendedChordQuality(getTriadVoicingQuality(state.quality), 'seventh');
+  // both 'seventh' and 'ninth' anchor on 7th-quality shapes
   const baseCandidates = getVoicingCandidatesByQuality(anchorQuality);
   const basePattern = baseCandidates.find((pattern) => pattern.caged === state.caged) || findVoicingByState(getTriadVoicingQuality(state.quality), state.caged);
   if (!basePattern) {
@@ -2034,7 +2049,9 @@ function resolveVoicingForSelection(selection, state = appState) {
   }
 
   let candidatePatterns = getVoicingCandidatesByQuality(
-    state.extension === 'seventh' ? selection.targetQuality : (selection.targetTriadQuality || selection.targetQuality)
+    state.extension === 'triad'
+      ? (selection.targetTriadQuality || selection.targetQuality)
+      : selection.targetQuality  // 'seventh' → e.g. major7; 'ninth' → e.g. major9 (falls back to major7 shapes)
   );
 
   if (state.extension === 'ninth') {
