@@ -1,9 +1,10 @@
-const CACHE_NAME = 'scale-charts-pwa-v32';
+const CACHE_NAME = 'scale-charts-pwa-v33';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './data/common-progressions-pack.json',
   './vendor/svguitar.umd.js',
   './data/templates/registry.json',
   './data/templates/caged-voicings.json',

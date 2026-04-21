@@ -19,13 +19,14 @@ function getChordRenderer() {
   throw new Error('SVGuitar library failed to load.');
 }
 
-const APP_VERSION = 'v2026.04.18+modes-scale-from-key-no-progression';
+const APP_VERSION = 'v2026.04.20+bundled-common-progressions';
 
 // Stable key: never changes.  Migration lives in the envelope's schemaVersion field.
 const PROGRESSION_STORAGE_KEY = 'scale-charts.progressions';
 const PROGRESSION_SCHEMA_VERSION = 1;
 // Legacy key used before versioned envelope. Data is migrated on first load.
 const PROGRESSION_LEGACY_KEY = 'scale-charts.progressions.v1';
+const DEFAULT_PROGRESSION_PACK_PATH = './data/common-progressions-pack.json';
 const CAGED_POSITIONS = ['C', 'A', 'G', 'E', 'D'];
 const PREVIEW_LEAD_OPTIONS = ['none', 'eighth', 'quarter', 'half'];
 
@@ -350,6 +351,51 @@ function loadProgressionsFromStorage() {
     appState.selectedProgressionId = fallback.id;
     appState.progressionDraft = cloneProgression(fallback);
     saveProgressionsToStorage();
+  }
+}
+
+async function loadBundledProgressions() {
+  const response = await fetch(`${DEFAULT_PROGRESSION_PACK_PATH}?v=${encodeURIComponent(APP_VERSION)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load bundled progressions: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const normalized = normalizeImportedProgressionsPayload(payload);
+  if (!normalized) {
+    throw new Error('Bundled progressions JSON has an invalid format.');
+  }
+
+  const migrated = migrateProgressions(normalized.progressions, normalized.schemaVersion);
+  const sanitized = migrated.map((progression) => sanitizeProgression(progression));
+  if (sanitized.length === 0) {
+    throw new Error('Bundled progressions JSON contained no valid progressions.');
+  }
+
+  return sanitized;
+}
+
+async function loadInitialProgressions() {
+  loadProgressionsFromStorage();
+
+  const hasStoredProgressions = Array.isArray(appState.progressions) && appState.progressions.length > 0;
+  const hasOnlyDefaultProgression =
+    hasStoredProgressions &&
+    appState.progressions.length === 1 &&
+    appState.progressions[0]?.name === 'New progression';
+
+  if (!hasOnlyDefaultProgression) {
+    return;
+  }
+
+  try {
+    const bundled = await loadBundledProgressions();
+    appState.progressions = bundled;
+    appState.selectedProgressionId = bundled[0]?.id || null;
+    appState.progressionDraft = bundled[0] ? cloneProgression(bundled[0]) : null;
+    saveProgressionsToStorage();
+  } catch (error) {
+    console.warn('Failed to seed bundled progressions:', error);
   }
 }
 
@@ -2612,7 +2658,7 @@ function registerServiceWorker() {
 
 async function boot() {
   await loadTemplates();
-  loadProgressionsFromStorage();
+  await loadInitialProgressions();
   setupControls();
   setupProgressionControls();
   setupTransportControls();
