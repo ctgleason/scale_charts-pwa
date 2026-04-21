@@ -2430,7 +2430,6 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
   const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
   const chordPentLabels = buildChordPentatonicLabelMap(displayedChordQuality);
   const voicingPositionSet = new Set();
-  const showAllChordTones = appState.extension !== 'triad';
 
   for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
     const absoluteFret = transposed.absoluteFrets[stringTemplateIndex];
@@ -2525,7 +2524,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
       : keyDegreeLabels.get(openIntervalFromKeyRoot) || '';
     const hasOpenChordLabel = openChordText !== '';
 
-    const isOpenChordHighlight = showAllChordTones ? isOpenChordTone : isVoicingOpen;
+    const isOpenChordHighlight = isVoicingOpen && isOpenChordTone;
 
     if (showChord && isOpenChordHighlight && chordOverlay && hasOpenChordLabel) {
       addMarker(stringIndex, 0, openIntervalFromKeyRoot, chordOverlay.color, 1, {
@@ -2572,7 +2571,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         : keyDegreeLabels.get(preIntervalFromKeyRoot) || '';
       const hasPreChordLabel = preChordText !== '';
 
-      const isPreChordHighlight = showAllChordTones ? isPreChordTone : isPreChord;
+      const isPreChordHighlight = isPreChord && isPreChordTone;
 
       if (isPreChordHighlight && chordOverlay && hasPreChordLabel) {
         addPreFretMarker(stringIndex, 1, {
@@ -2633,7 +2632,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
         : keyDegreeLabels.get(intervalFromKeyRoot) || '';
       const hasChordLabel = chordText !== '';
 
-      const isChordHighlight = showAllChordTones ? isChordTone : isVoicingPosition;
+      const isChordHighlight = isVoicingPosition && isChordTone;
 
       if (showChord && isChordHighlight && chordOverlay && hasChordLabel) {
         addMarker(stringIndex, displayFret, intervalFromKeyRoot, chordOverlay.color, 1, {
