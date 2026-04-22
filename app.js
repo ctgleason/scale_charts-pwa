@@ -1809,7 +1809,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 1, 4, 1, 3],
+    relativeFrets: ['x', 2, 1, 2, 1, 3],
   },
   {
     id: 'fallback-voicing-halfdim9-e',
@@ -2985,7 +2985,7 @@ function renderChordFromTemplate(SVGuitarChord, options = {}) {
     keyQuality: selection.keyQuality,
     displayedChordRootSemitone: selection.targetRootSemitone,
     displayedChordQuality: selection.targetQuality,
-    useDisplayedChordDegreeLabels: !selection.isTonic,
+    useDisplayedChordDegreeLabels: true,
     diagramPosition,
     diagramFrets,
   });
