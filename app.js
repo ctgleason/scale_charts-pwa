@@ -1795,13 +1795,31 @@ const EMBEDDED_HENDRIX_VOICINGS = [
 
 const EMBEDDED_MAJOR9_VOICINGS = [
   {
+    id: 'fallback-voicing-major9-c',
+    label: 'Major 9th',
+    type: 'voicing',
+    quality: 'major9',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 2, 0, 0, 0],
+  },
+  {
     id: 'fallback-voicing-major9-a',
     label: 'Major 9th',
     type: 'voicing',
     quality: 'major9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 2, 4, 2, 4],
+    relativeFrets: ['x', 0, 2, 1, 2, 'x'],
+  },
+  {
+    id: 'fallback-voicing-major9-g',
+    label: 'Major 9th',
+    type: 'voicing',
+    quality: 'major9',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 2, 0, 0, 0, 3],
   },
   {
     id: 'fallback-voicing-major9-e',
@@ -1810,11 +1828,29 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'E',
     referenceRoot: 'E',
-    relativeFrets: [0, 2, 1, 1, 0, 2],
+    relativeFrets: [0, 2, 2, 1, 2, 0],
+  },
+  {
+    id: 'fallback-voicing-major9-d',
+    label: 'Major 9th',
+    type: 'voicing',
+    quality: 'major9',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 1, 0],
   },
 ];
 
 const EMBEDDED_MINOR9_VOICINGS = [
+  {
+    id: 'fallback-voicing-minor9-c',
+    label: 'Minor 9th',
+    type: 'voicing',
+    quality: 'minor9',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 2, 3, 3, 1, 'x'],
+  },
   {
     id: 'fallback-voicing-minor9-a',
     label: 'Minor 9th',
@@ -1822,7 +1858,16 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 2, 4, 1, 3],
+    relativeFrets: ['x', 0, 3, 3, 4, 'x'],
+  },
+  {
+    id: 'fallback-voicing-minor9-g',
+    label: 'Minor 9th',
+    type: 'voicing',
+    quality: 'minor9',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 1, 0, 0, 0, 3],
   },
   {
     id: 'fallback-voicing-minor9-e',
@@ -1831,7 +1876,16 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'E',
     referenceRoot: 'E',
-    relativeFrets: [0, 2, 0, 0, 0, 2],
+    relativeFrets: [0, 2, 2, 0, 1, 0],
+  },
+  {
+    id: 'fallback-voicing-minor9-d',
+    label: 'Minor 9th',
+    type: 'voicing',
+    quality: 'minor9',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 0, 0],
   },
 ];
 
@@ -1858,13 +1912,31 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
 
 const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
   {
+    id: 'fallback-voicing-halfdim9-c',
+    label: 'Half-diminished 9th',
+    type: 'voicing',
+    quality: 'half-diminished9',
+    caged: 'C',
+    referenceRoot: 'B',
+    relativeFrets: ['x', 1, 2, 2, 1, 'x'],
+  },
+  {
     id: 'fallback-voicing-halfdim9-a',
     label: 'Half-diminished 9th',
     type: 'voicing',
     quality: 'half-diminished9',
     caged: 'A',
-    referenceRoot: 'A',
-    relativeFrets: ['x', 2, 1, 2, 1, 3],
+    referenceRoot: 'B',
+    relativeFrets: ['x', 1, 3, 2, 3, 'x'],
+  },
+  {
+    id: 'fallback-voicing-halfdim9-g',
+    label: 'Half-diminished 9th',
+    type: 'voicing',
+    quality: 'half-diminished9',
+    caged: 'G',
+    referenceRoot: 'B',
+    relativeFrets: [2, 3, 4, 4, 1, 'x'],
   },
   {
     id: 'fallback-voicing-halfdim9-e',
@@ -1872,8 +1944,17 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     type: 'voicing',
     quality: 'half-diminished9',
     caged: 'E',
-    referenceRoot: 'E',
-    relativeFrets: [0, 1, 0, 0, 3, 2],
+    referenceRoot: 'B',
+    relativeFrets: [0, 6, 7, 6, 5, 'x'],
+  },
+  {
+    id: 'fallback-voicing-halfdim9-d',
+    label: 'Half-diminished 9th',
+    type: 'voicing',
+    quality: 'half-diminished9',
+    caged: 'D',
+    referenceRoot: 'B',
+    relativeFrets: ['x', 'x', 'x', 7, 6, 5],
   },
 ];
 
