@@ -2466,7 +2466,20 @@ function buildDegreeLabelMap(scaleIntervals) {
 
 function buildTriadLabelMap(quality) {
   const intervals = CHORD_QUALITY_INTERVALS[quality] || CHORD_QUALITY_INTERVALS.major;
-  const labels = ['1', '3', '5', '7', '9'];
+  const qualityLabels = {
+    major: ['1', '3', '5'],
+    minor: ['1', 'b3', '5'],
+    diminished: ['1', 'b3', 'b5'],
+    major7: ['1', '3', '5', '7'],
+    minor7: ['1', 'b3', '5', 'b7'],
+    dominant7: ['1', '3', '5', 'b7'],
+    'half-diminished7': ['1', 'b3', 'b5', 'b7'],
+    major9: ['1', '3', '5', '7', '9'],
+    minor9: ['1', 'b3', '5', 'b7', '9'],
+    dominant9: ['1', '3', '5', 'b7', '9'],
+    'half-diminished9': ['1', 'b3', 'b5', 'b7', '9'],
+  };
+  const labels = qualityLabels[quality] || ['1', '3', '5', '7', '9'];
   const labelMap = new Map();
 
   intervals.forEach((interval, index) => {
@@ -2534,8 +2547,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
   const showChord = appState.overlays['overlay-chord-tones'] !== false;
   const showKeyPent = appState.overlays['overlay-pentatonic'] === true;
-  const showChordPent =
-    appState.overlays['overlay-chord-pentatonic'] === true && displayedChordQuality !== 'diminished';
+  const showChordPent = appState.overlays['overlay-chord-pentatonic'] === true;
   const showScale = appState.overlays['overlay-diatonic'] === true;
 
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
