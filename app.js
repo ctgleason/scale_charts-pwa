@@ -1790,6 +1790,7 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'C',
     referenceRoot: 'C',
+    // A=Root, D=maj3, G=maj7, B=9 → C-E-B-D
     relativeFrets: ['x', 3, 2, 4, 3, 'x'],
   },
   {
@@ -1799,7 +1800,8 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 12, 11, 13, 12, 'x'],
+    // A=Root(12), D=maj3(23=11+12), G=maj7(13), B=9(12) → folds to 0,11,1,0 for A root
+    relativeFrets: ['x', 12, 23, 13, 12, 'x'],
   },
   {
     id: 'fallback-voicing-major9-g',
@@ -1808,7 +1810,8 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'G',
     referenceRoot: 'G',
-    relativeFrets: ['x', 'x', 0, 2, 0, 2],
+    // A=Root(10), D=maj3(9), G=maj7(11), B=9(10) → G-B-F#-A
+    relativeFrets: ['x', 10, 9, 11, 10, 'x'],
   },
   {
     id: 'fallback-voicing-major9-e',
@@ -1817,6 +1820,7 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'E',
     referenceRoot: 'E',
+    // A=Root(7), D=maj3(6), G=maj7(8), B=9(7) → E-G#-Eb-F#
     relativeFrets: ['x', 7, 6, 8, 7, 'x'],
   },
   {
@@ -1826,6 +1830,7 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'D',
     referenceRoot: 'D',
+    // A=Root(5), D=maj3(4), G=maj7(6), B=9(5) → D-F#-C#-E
     relativeFrets: ['x', 5, 4, 6, 5, 'x'],
   },
 ];
@@ -1838,6 +1843,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'C',
     referenceRoot: 'C',
+    // A=Root(3), D=b3(1), G=b7(3), B=9(3) → C-Eb-Bb-D
     relativeFrets: ['x', 3, 1, 3, 3, 'x'],
   },
   {
@@ -1847,6 +1853,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'A',
     referenceRoot: 'A',
+    // A=Root(12), D=b3(10), G=b7(12), B=9(12) → folds to A-C-G-B for A root
     relativeFrets: ['x', 12, 10, 12, 12, 'x'],
   },
   {
@@ -1856,6 +1863,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'G',
     referenceRoot: 'G',
+    // A=Root(10), D=b3(8), G=b7(10), B=9(10) → G-Bb-F-A
     relativeFrets: ['x', 10, 8, 10, 10, 'x'],
   },
   {
@@ -1865,6 +1873,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'E',
     referenceRoot: 'E',
+    // A=Root(7), D=b3(5), G=b7(7), B=9(7) → E-G-D-F#
     relativeFrets: ['x', 7, 5, 7, 7, 'x'],
   },
   {
@@ -1874,6 +1883,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'D',
     referenceRoot: 'D',
+    // A=Root(5), D=b3(3), G=b7(5), B=9(5) → D-F-C-E
     relativeFrets: ['x', 5, 3, 5, 5, 'x'],
   },
 ];
@@ -1886,6 +1896,7 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'C',
     referenceRoot: 'C',
+    // A=Root(3), D=maj3(2), G=b7(3), B=9(3) → C-E-Bb-D
     relativeFrets: ['x', 3, 2, 3, 3, 'x'],
   },
   {
@@ -1895,6 +1906,7 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'A',
     referenceRoot: 'A',
+    // A=Root(12), D=maj3(11), G=b7(12), B=9(12) → folds to A-C#-G-B for A root
     relativeFrets: ['x', 12, 11, 12, 12, 'x'],
   },
   {
@@ -1904,6 +1916,7 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'G',
     referenceRoot: 'G',
+    // A=Root(10), D=maj3(9), G=b7(10), B=9(10) → G-B-F-A
     relativeFrets: ['x', 10, 9, 10, 10, 'x'],
   },
   {
@@ -1913,6 +1926,7 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'E',
     referenceRoot: 'E',
+    // A=Root(7), D=maj3(6), G=b7(7), B=9(7) → E-G#-D-F#
     relativeFrets: ['x', 7, 6, 7, 7, 'x'],
   },
   {
@@ -1922,6 +1936,7 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'D',
     referenceRoot: 'D',
+    // A=Root(5), D=maj3(4), G=b7(5), B=9(5) → D-F#-C-E
     relativeFrets: ['x', 5, 4, 5, 5, 'x'],
   },
 ];
@@ -1934,6 +1949,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'C',
     referenceRoot: 'C',
+    // A=Root(3), D=b3(1), G=b7(3), B=9(3) → C-Eb-Bb-D  (same shell as minor9, b5 omitted)
     relativeFrets: ['x', 3, 1, 3, 3, 'x'],
   },
   {
@@ -1943,6 +1959,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'A',
     referenceRoot: 'A',
+    // A=Root(12), D=b3(10), G=b7(12), B=9(12) → folds to A-C-G-B for A root
     relativeFrets: ['x', 12, 10, 12, 12, 'x'],
   },
   {
@@ -1952,6 +1969,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'G',
     referenceRoot: 'G',
+    // A=Root(10), D=b3(8), G=b7(10), B=9(10) → G-Bb-F-A
     relativeFrets: ['x', 10, 8, 10, 10, 'x'],
   },
   {
@@ -1961,6 +1979,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'E',
     referenceRoot: 'E',
+    // A=Root(7), D=b3(5), G=b7(7), B=9(7) → E-G-D-F#
     relativeFrets: ['x', 7, 5, 7, 7, 'x'],
   },
   {
@@ -1970,6 +1989,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'D',
     referenceRoot: 'D',
+    // A=Root(5), D=b3(3), G=b7(5), B=9(5) → D-F-C-E
     relativeFrets: ['x', 5, 3, 5, 5, 'x'],
   },
 ];
@@ -2385,11 +2405,18 @@ function resolveVoicingForSelection(selection, state = appState) {
     }
   }
 
+  // For 9th/hendrix extensions, the voicing position determines the diagram frame,
+  // not the key-root anchor (which may be far away)
+  const resolvedAnchorPosition =
+    (state.extension === 'ninth' || state.extension === 'hendrix')
+      ? best.transposed.position
+      : baseTransposed.position;
+
   return {
     pattern: best.pattern,
     transposed: best.transposed,
     caged: best.caged,
-    anchorPosition: baseTransposed.position,
+    anchorPosition: resolvedAnchorPosition,
   };
 }
 
