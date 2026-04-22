@@ -2291,6 +2291,155 @@ function getDegreeSelection(state = appState) {
   };
 }
 
+function getEssentialChordIntervals(quality) {
+  if (quality === 'major9') {
+    return [0, 4, 11, 2];
+  }
+
+  if (quality === 'minor9') {
+    return [0, 3, 10, 2];
+  }
+
+  if (quality === 'dominant9') {
+    return [0, 4, 10, 2];
+  }
+
+  if (quality === 'half-diminished9') {
+    return [0, 3, 10, 2];
+  }
+
+  if (quality === 'hendrix') {
+    return [0, 4, 10, 3];
+  }
+
+  return CHORD_QUALITY_INTERVALS[quality] || CHORD_QUALITY_INTERVALS.major;
+}
+
+function getCagedDistance(fromCaged, toCaged) {
+  const fromIndex = CAGED_POSITIONS.indexOf(fromCaged);
+  const toIndex = CAGED_POSITIONS.indexOf(toCaged);
+
+  if (fromIndex === -1 || toIndex === -1) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const clockwise = Math.abs(fromIndex - toIndex);
+  const counterClockwise = CAGED_POSITIONS.length - clockwise;
+  return Math.min(clockwise, counterClockwise);
+}
+
+function analyzeExtendedVoicing(transposed, rootSemitone, quality) {
+  const essentialIntervals = getEssentialChordIntervals(quality);
+  const presentIntervals = new Set();
+  const positiveFrets = transposed.absoluteFrets.filter((fret) => typeof fret === 'number' && fret > 0);
+
+  for (let stringIndex = 0; stringIndex < transposed.absoluteFrets.length; stringIndex += 1) {
+    const absoluteFret = transposed.absoluteFrets[stringIndex];
+    if (typeof absoluteFret !== 'number') {
+      continue;
+    }
+
+    const noteSemitone = normalizeSemitone(
+      getOpenStringSemitoneByTemplateIndex(stringIndex) + absoluteFret
+    );
+    presentIntervals.add(normalizeSemitone(noteSemitone - rootSemitone));
+  }
+
+  const missingIntervals = essentialIntervals.filter((interval) => !presentIntervals.has(interval));
+  const fretSpread =
+    positiveFrets.length > 0
+      ? Math.max(...positiveFrets) - Math.min(...positiveFrets)
+      : 0;
+  const maxPositiveFret = positiveFrets.length > 0 ? Math.max(...positiveFrets) : 0;
+  const highOutlier = positiveFrets.length > 0 ? maxPositiveFret - transposed.position : 0;
+
+  return {
+    missingIntervalCount: missingIntervals.length,
+    fretSpreadPenalty: Math.max(0, fretSpread - 4),
+    highOutlierPenalty: Math.max(0, highOutlier - 4),
+  };
+}
+
+function pickBestExtendedVoicing(selection, state, baseTransposed, candidatePatterns) {
+  const hasOpenAnchor = baseTransposed.position === 1;
+  const preferredCaged = NINTH_VOICING_FALLBACKS[selection.targetQuality]?.[state.caged] || [];
+  let best = null;
+
+  for (const pattern of candidatePatterns) {
+    const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
+    const diagnostics = analyzeExtendedVoicing(
+      transposed,
+      selection.targetRootSemitone,
+      selection.targetQuality
+    );
+    const distance = Math.abs(transposed.position - baseTransposed.position);
+    const usesOpenPosition = transposed.position === 1;
+    const openPenalty = !hasOpenAnchor && usesOpenPosition ? 1 : 0;
+    const cagedDistance = getCagedDistance(state.caged, pattern.caged);
+    const fallbackRank = preferredCaged.length > 0
+      ? (() => {
+          const index = preferredCaged.indexOf(pattern.caged);
+          return index === -1 ? preferredCaged.length : index;
+        })()
+      : cagedDistance;
+
+    const candidate = {
+      pattern,
+      transposed,
+      caged: pattern.caged,
+      diagnostics,
+      distance,
+      openPenalty,
+      cagedDistance,
+      fallbackRank,
+    };
+
+    if (
+      !best ||
+      candidate.diagnostics.missingIntervalCount < best.diagnostics.missingIntervalCount ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty < best.diagnostics.highOutlierPenalty) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty < best.diagnostics.fretSpreadPenalty) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty === best.diagnostics.fretSpreadPenalty &&
+        candidate.openPenalty < best.openPenalty) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty === best.diagnostics.fretSpreadPenalty &&
+        candidate.openPenalty === best.openPenalty &&
+        candidate.distance < best.distance) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty === best.diagnostics.fretSpreadPenalty &&
+        candidate.openPenalty === best.openPenalty &&
+        candidate.distance === best.distance &&
+        candidate.cagedDistance < best.cagedDistance) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty === best.diagnostics.fretSpreadPenalty &&
+        candidate.openPenalty === best.openPenalty &&
+        candidate.distance === best.distance &&
+        candidate.cagedDistance === best.cagedDistance &&
+        candidate.fallbackRank < best.fallbackRank) ||
+      (candidate.diagnostics.missingIntervalCount === best.diagnostics.missingIntervalCount &&
+        candidate.diagnostics.highOutlierPenalty === best.diagnostics.highOutlierPenalty &&
+        candidate.diagnostics.fretSpreadPenalty === best.diagnostics.fretSpreadPenalty &&
+        candidate.openPenalty === best.openPenalty &&
+        candidate.distance === best.distance &&
+        candidate.cagedDistance === best.cagedDistance &&
+        candidate.fallbackRank === best.fallbackRank &&
+        candidate.transposed.position < best.transposed.position)
+    ) {
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
 function resolveVoicingForSelection(selection, state = appState) {
   const anchorQuality =
     state.extension === 'triad'
@@ -2315,27 +2464,15 @@ function resolveVoicingForSelection(selection, state = appState) {
         anchorPosition: baseTransposed.position,
       };
     }
-    // ninth/hendrix: snap to the nearest available voicing
+    // ninth/hendrix: choose the nearest playable complete voicing
     const tonicNinthCandidates = getVoicingCandidatesByQuality(selection.targetQuality);
-    const selectedCagedCandidate = tonicNinthCandidates.find((pattern) => pattern.caged === state.caged);
-    if (selectedCagedCandidate) {
-      return {
-        pattern: selectedCagedCandidate,
-        transposed: transposeVoicing(selectedCagedCandidate, selection.targetRootSemitone),
-        caged: selectedCagedCandidate.caged,
-        anchorPosition: baseTransposed.position,
-      };
-    }
+    const bestTonic = pickBestExtendedVoicing(
+      selection,
+      state,
+      baseTransposed,
+      tonicNinthCandidates
+    );
 
-    let bestTonic = null;
-    for (const pattern of tonicNinthCandidates) {
-      const transposed = transposeVoicing(pattern, selection.targetRootSemitone);
-      const distance = Math.abs(transposed.position - baseTransposed.position);
-      if (!bestTonic || distance < bestTonic.distance ||
-          (distance === bestTonic.distance && transposed.position < bestTonic.transposed.position)) {
-        bestTonic = { pattern, transposed, distance };
-      }
-    }
     return {
       pattern: bestTonic.pattern,
       transposed: bestTonic.transposed,
@@ -2350,25 +2487,24 @@ function resolveVoicingForSelection(selection, state = appState) {
       : selection.targetQuality  // 'seventh' → e.g. major7; 'ninth' → e.g. major9 (falls back to major7 shapes)
   );
 
-  if ((state.extension === 'ninth' || state.extension === 'hendrix') && candidatePatterns.length > 0) {
-    const selectedCagedCandidate = candidatePatterns.find((pattern) => pattern.caged === state.caged);
-    if (selectedCagedCandidate) {
-      candidatePatterns = [selectedCagedCandidate];
-    }
-  }
-
-  if (state.extension === 'ninth') {
-    const preferredCaged = NINTH_VOICING_FALLBACKS[selection.targetQuality]?.[state.caged];
-    if (Array.isArray(preferredCaged) && preferredCaged.length > 0) {
-      const filtered = candidatePatterns.filter((pattern) => preferredCaged.includes(pattern.caged));
-      if (filtered.length > 0) {
-        candidatePatterns = filtered;
-      }
-    }
-  }
-
   if (candidatePatterns.length === 0) {
     throw new Error(`No ${selection.targetTriadQuality || selection.targetQuality} voicing templates available.`);
+  }
+
+  if (state.extension === 'ninth' || state.extension === 'hendrix') {
+    const bestExtended = pickBestExtendedVoicing(
+      selection,
+      state,
+      baseTransposed,
+      candidatePatterns
+    );
+
+    return {
+      pattern: bestExtended.pattern,
+      transposed: bestExtended.transposed,
+      caged: bestExtended.caged,
+      anchorPosition: bestExtended.transposed.position,
+    };
   }
 
   const hasOpenAnchor = baseTransposed.position === 1;
