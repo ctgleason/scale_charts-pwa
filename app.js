@@ -124,7 +124,8 @@ const NINTH_VOICING_FALLBACKS = {
   dominant9: {
     C: ['A', 'G', 'E'],
     D: ['A', 'G', 'E'],
-  // ── Embedded 9th-chord voicings (A and E shapes only — the two practical grips) ──
+  },
+  'half-diminished9': {
     C: ['A', 'D', 'E'],
     G: ['E', 'A', 'D'],
   },
@@ -1877,7 +1878,7 @@ const EMBEDDED_MINOR7_VOICINGS = [
     quality: 'minor7',
     caged: 'C',
     referenceRoot: 'C',
-    relativeFrets: ['x', 3, 5, 3, 4, 3],
+    relativeFrets: ['x', 3, 1, 3, 1, 3],
   },
   {
     id: 'fallback-voicing-minor7-a',
@@ -1895,7 +1896,7 @@ const EMBEDDED_MINOR7_VOICINGS = [
     quality: 'minor7',
     caged: 'G',
     referenceRoot: 'G',
-    relativeFrets: [3, 'x', 3, 3, 3, 3],
+    relativeFrets: [3, 1, 3, 0, 3, 'x'],
   },
   {
     id: 'fallback-voicing-minor7-e',
