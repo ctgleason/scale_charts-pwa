@@ -1808,7 +1808,7 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'G',
     referenceRoot: 'G',
-    relativeFrets: ['x', 10, 9, 11, 10, 'x'],
+    relativeFrets: ['x', 'x', 0, 2, 0, 2],
   },
   {
     id: 'fallback-voicing-major9-e',
@@ -1880,13 +1880,31 @@ const EMBEDDED_MINOR9_VOICINGS = [
 
 const EMBEDDED_DOMINANT9_VOICINGS = [
   {
+    id: 'fallback-voicing-dominant9-c',
+    label: 'Dominant 9th',
+    type: 'voicing',
+    quality: 'dominant9',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 2, 3, 3, 'x'],
+  },
+  {
     id: 'fallback-voicing-dominant9-a',
     label: 'Dominant 9th',
     type: 'voicing',
     quality: 'dominant9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 2, 4, 2, 3],
+    relativeFrets: ['x', 12, 11, 12, 12, 'x'],
+  },
+  {
+    id: 'fallback-voicing-dominant9-g',
+    label: 'Dominant 9th',
+    type: 'voicing',
+    quality: 'dominant9',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: ['x', 10, 9, 10, 10, 'x'],
   },
   {
     id: 'fallback-voicing-dominant9-e',
@@ -1895,7 +1913,16 @@ const EMBEDDED_DOMINANT9_VOICINGS = [
     quality: 'dominant9',
     caged: 'E',
     referenceRoot: 'E',
-    relativeFrets: [0, 2, 0, 1, 0, 2],
+    relativeFrets: ['x', 7, 6, 7, 7, 'x'],
+  },
+  {
+    id: 'fallback-voicing-dominant9-d',
+    label: 'Dominant 9th',
+    type: 'voicing',
+    quality: 'dominant9',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 5, 4, 5, 5, 'x'],
   },
 ];
 
@@ -2303,6 +2330,13 @@ function resolveVoicingForSelection(selection, state = appState) {
       : selection.targetQuality  // 'seventh' → e.g. major7; 'ninth' → e.g. major9 (falls back to major7 shapes)
   );
 
+  if ((state.extension === 'ninth' || state.extension === 'hendrix') && candidatePatterns.length > 0) {
+    const selectedCagedCandidate = candidatePatterns.find((pattern) => pattern.caged === state.caged);
+    if (selectedCagedCandidate) {
+      candidatePatterns = [selectedCagedCandidate];
+    }
+  }
+
   if (state.extension === 'ninth') {
     const preferredCaged = NINTH_VOICING_FALLBACKS[selection.targetQuality]?.[state.caged];
     if (Array.isArray(preferredCaged) && preferredCaged.length > 0) {
@@ -2517,7 +2551,7 @@ function transposeVoicing(pattern, targetSemitone, title = getSelectionLabel()) 
   const reference = parseNote(pattern.referenceRoot || 'C');
   const offset = normalizeSemitone(targetSemitone - reference.semitone);
 
-  const absoluteFrets = (pattern.relativeFrets || []).map((fret) => {
+  let absoluteFrets = (pattern.relativeFrets || []).map((fret) => {
     if (fret === 'x') {
       return 'x';
     }
@@ -2529,6 +2563,33 @@ function transposeVoicing(pattern, targetSemitone, title = getSelectionLabel()) 
 
     return absolute;
   });
+
+  // Keep transposed voicings in a playable neighborhood by folding down octaves when all fretted notes are high.
+  while (true) {
+    const numericFrets = absoluteFrets.filter((fret) => typeof fret === 'number' && fret > 0);
+    if (numericFrets.length === 0) {
+      break;
+    }
+
+    if (Math.min(...numericFrets) < 12) {
+      break;
+    }
+
+    const shifted = absoluteFrets.map((fret) => {
+      if (typeof fret !== 'number' || fret <= 0) {
+        return fret;
+      }
+
+      return fret - 12;
+    });
+
+    const shiftedFrets = shifted.filter((fret) => typeof fret === 'number' && fret > 0);
+    if (shiftedFrets.length === 0 || Math.min(...shiftedFrets) < 0) {
+      break;
+    }
+
+    absoluteFrets = shifted;
+  }
 
   const fretted = absoluteFrets.filter((fret) => typeof fret === 'number' && fret > 0);
   const hasOpenString = absoluteFrets.some((fret) => fret === 0);
