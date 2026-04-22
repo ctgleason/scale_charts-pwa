@@ -1746,7 +1746,7 @@ const EMBEDDED_MAJOR9_VOICINGS = [
     quality: 'major9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 2, 1, 0, 0],
+    relativeFrets: ['x', 0, 2, 4, 2, 4],
   },
   {
     id: 'fallback-voicing-major9-e',
@@ -1767,7 +1767,7 @@ const EMBEDDED_MINOR9_VOICINGS = [
     quality: 'minor9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 2, 0, 0, 0],
+    relativeFrets: ['x', 0, 2, 4, 1, 3],
   },
   {
     id: 'fallback-voicing-minor9-e',
@@ -1809,7 +1809,7 @@ const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
     quality: 'half-diminished9',
     caged: 'A',
     referenceRoot: 'A',
-    relativeFrets: ['x', 0, 1, 0, 0, 0],
+    relativeFrets: ['x', 0, 1, 4, 1, 3],
   },
   {
     id: 'fallback-voicing-halfdim9-e',
@@ -2148,7 +2148,7 @@ function resolveVoicingForSelection(selection, state = appState) {
       pattern: bestTonic.pattern,
       transposed: bestTonic.transposed,
       caged: bestTonic.pattern.caged,
-      anchorPosition: baseTransposed.position,
+      anchorPosition: bestTonic.transposed.position,
     };
   }
 
