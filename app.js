@@ -1737,6 +1737,90 @@ const EMBEDDED_DIMINISHED_VOICINGS = [
   },
 ];
 
+const EMBEDDED_MAJOR9_VOICINGS = [
+  {
+    id: 'fallback-voicing-major9-a',
+    label: 'Major 9th',
+    type: 'voicing',
+    quality: 'major9',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 1, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-major9-e',
+    label: 'Major 9th',
+    type: 'voicing',
+    quality: 'major9',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 1, 1, 0, 2],
+  },
+];
+
+const EMBEDDED_MINOR9_VOICINGS = [
+  {
+    id: 'fallback-voicing-minor9-a',
+    label: 'Minor 9th',
+    type: 'voicing',
+    quality: 'minor9',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 0, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-minor9-e',
+    label: 'Minor 9th',
+    type: 'voicing',
+    quality: 'minor9',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 0, 0, 0, 2],
+  },
+];
+
+const EMBEDDED_DOMINANT9_VOICINGS = [
+  {
+    id: 'fallback-voicing-dominant9-a',
+    label: 'Dominant 9th',
+    type: 'voicing',
+    quality: 'dominant9',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 4, 2, 3],
+  },
+  {
+    id: 'fallback-voicing-dominant9-e',
+    label: 'Dominant 9th',
+    type: 'voicing',
+    quality: 'dominant9',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 0, 1, 0, 2],
+  },
+];
+
+const EMBEDDED_HALF_DIMINISHED9_VOICINGS = [
+  {
+    id: 'fallback-voicing-halfdim9-a',
+    label: 'Half-diminished 9th',
+    type: 'voicing',
+    quality: 'half-diminished9',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 1, 0, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-halfdim9-e',
+    label: 'Half-diminished 9th',
+    type: 'voicing',
+    quality: 'half-diminished9',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 1, 0, 0, 3, 2],
+  },
+];
+
 const EMBEDDED_MAJOR7_VOICINGS = [
   {
     id: 'fallback-voicing-major7-c',
