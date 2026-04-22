@@ -109,7 +109,7 @@ const NATURAL_NOTE_TO_SEMITONE = {
 const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-const CHORD_EXTENSION_OPTIONS = ['triad', 'seventh', 'ninth'];
+const CHORD_EXTENSION_OPTIONS = ['triad', 'seventh', 'ninth', 'hendrix'];
 const NINTH_VOICING_FALLBACKS = {
   major9: {
     C: ['A', 'E'],
@@ -146,6 +146,7 @@ const CHORD_QUALITY_INTERVALS = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   diminished: [0, 3, 6],
+  hendrix: [0, 4, 10, 3],
   major7: [0, 4, 7, 11],
   minor7: [0, 3, 7, 10],
   dominant7: [0, 4, 7, 10],
@@ -1349,6 +1350,7 @@ function renderProgressionSteps() {
                 <option value="triad"${step.extension === 'triad' ? ' selected' : ''}>Triad</option>
                 <option value="seventh"${step.extension === 'seventh' ? ' selected' : ''}>7th</option>
                 <option value="ninth"${step.extension === 'ninth' ? ' selected' : ''}>9th</option>
+                <option value="hendrix"${step.extension === 'hendrix' ? ' selected' : ''}>Hendrix (7#9)</option>
               </select>
             </label>
 
@@ -1641,6 +1643,10 @@ function getExtendedChordQuality(baseQuality, extension = appState.extension) {
     return baseQuality;
   }
 
+  if (extension === 'hendrix') {
+    return 'hendrix';
+  }
+
   const baseToSeventh = {
     major: extension === 'ninth' ? 'major9' : 'major7',
     minor: extension === 'ninth' ? 'minor9' : 'minor7',
@@ -1661,6 +1667,7 @@ function getExtendedChordQuality(baseQuality, extension = appState.extension) {
 function getQualitySuffix(quality) {
   if (quality === 'minor') return 'm';
   if (quality === 'diminished') return 'dim';
+  if (quality === 'hendrix') return '7#9';
   if (quality === 'major7') return 'maj7';
   if (quality === 'minor7') return 'm7';
   if (quality === 'dominant7') return '7';
@@ -1735,6 +1742,54 @@ const EMBEDDED_DIMINISHED_VOICINGS = [
     caged: 'D',
     referenceRoot: 'D',
     relativeFrets: ['x', 'x', 0, 1, 3, 1],
+  },
+];
+
+const EMBEDDED_HENDRIX_VOICINGS = [
+  {
+    id: 'fallback-voicing-hendrix-c',
+    label: 'Hendrix 7#9',
+    type: 'voicing',
+    quality: 'hendrix',
+    caged: 'C',
+    referenceRoot: 'E',
+    relativeFrets: ['x', 7, 6, 7, 8, 'x'],
+  },
+  {
+    id: 'fallback-voicing-hendrix-a',
+    label: 'Hendrix 7#9',
+    type: 'voicing',
+    quality: 'hendrix',
+    caged: 'A',
+    referenceRoot: 'E',
+    relativeFrets: ['x', 19, 18, 21, 21, 'x'],
+  },
+  {
+    id: 'fallback-voicing-hendrix-g',
+    label: 'Hendrix 7#9',
+    type: 'voicing',
+    quality: 'hendrix',
+    caged: 'G',
+    referenceRoot: 'E',
+    relativeFrets: [12, 11, 12, 12, 'x', 'x'],
+  },
+  {
+    id: 'fallback-voicing-hendrix-e',
+    label: 'Hendrix 7#9',
+    type: 'voicing',
+    quality: 'hendrix',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [12, 'x', 12, 13, 15, 'x'],
+  },
+  {
+    id: 'fallback-voicing-hendrix-d',
+    label: 'Hendrix 7#9',
+    type: 'voicing',
+    quality: 'hendrix',
+    caged: 'D',
+    referenceRoot: 'E',
+    relativeFrets: ['x', 'x', 2, 1, 3, 3],
   },
 ];
 
@@ -2020,6 +2075,10 @@ function getVoicingCandidatesByQuality(quality) {
     return matches;
   }
 
+  if (quality === 'hendrix') {
+    return EMBEDDED_HENDRIX_VOICINGS;
+  }
+
   if (quality === 'major7') {
     return EMBEDDED_MAJOR7_VOICINGS;
   }
@@ -2086,11 +2145,16 @@ function getDegreeSelection(state = appState) {
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetTriadQuality = triadQualities[degreeIndex] || 'major';
   const targetSeventhQuality = seventhQualities[degreeIndex] || 'major7';
+  const overlayChordQuality = state.extension === 'triad' ? targetTriadQuality : targetSeventhQuality;
   const targetQuality =
     state.extension === 'triad'
       ? targetTriadQuality
+      : state.extension === 'hendrix'
+        ? 'hendrix'
       : state.extension === 'ninth'
-        ? getExtendedChordQuality(targetSeventhQuality, 'ninth')
+        ? degreeIndex === 2
+          ? 'hendrix'
+          : getExtendedChordQuality(targetSeventhQuality, 'ninth')
         : targetSeventhQuality;
   const targetRootName = getNoteNameBySemitone(targetRootSemitone, state.accidental);
   const targetSymbol = `${targetRootName}${getQualitySuffix(targetQuality)}`;
@@ -2103,6 +2167,7 @@ function getDegreeSelection(state = appState) {
     degreeLabel,
     isTonic: degreeIndex === 0,
     targetRootSemitone,
+    overlayChordQuality,
     targetTriadQuality,
     targetQuality,
     targetSymbol,
@@ -2123,7 +2188,7 @@ function resolveVoicingForSelection(selection, state = appState) {
 
   const baseTransposed = transposeVoicing(basePattern, selection.keyRootSemitone);
   if (selection.isTonic) {
-    if (state.extension !== 'ninth') {
+    if (state.extension !== 'ninth' && state.extension !== 'hendrix') {
       // triad / seventh: use the anchor shape directly
       const tonicTransposed = transposeVoicing(basePattern, selection.targetRootSemitone);
       return {
@@ -2133,7 +2198,7 @@ function resolveVoicingForSelection(selection, state = appState) {
         anchorPosition: baseTransposed.position,
       };
     }
-    // ninth: snap to the nearest A/E 9th shape (same proximity logic as non-tonic)
+    // ninth/hendrix: snap to the nearest available voicing
     const tonicNinthCandidates = getVoicingCandidatesByQuality(selection.targetQuality);
     let bestTonic = null;
     for (const pattern of tonicNinthCandidates) {
@@ -2437,6 +2502,7 @@ function getScaleIntervalsForQuality(quality) {
     return match.intervals;
   }
 
+  if (quality === 'hendrix') return [0, 2, 4, 5, 7, 9, 10];
   if (normalizedQuality === 'minor') return [0, 2, 3, 5, 7, 8, 10];
   if (normalizedQuality === 'dorian') return [0, 2, 3, 5, 7, 9, 10];
   if (normalizedQuality === 'mixolydian') return [0, 2, 4, 5, 7, 9, 10];
@@ -2470,6 +2536,7 @@ function buildTriadLabelMap(quality) {
     major: ['1', '3', '5'],
     minor: ['1', 'b3', '5'],
     diminished: ['1', 'b3', 'b5'],
+    hendrix: ['1', '3', 'b7', '#9'],
     major7: ['1', '3', '5', '7'],
     minor7: ['1', 'b3', '5', 'b7'],
     dominant7: ['1', '3', '5', 'b7'],
@@ -2513,6 +2580,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
     keyQuality,
     displayedChordRootSemitone,
     displayedChordQuality,
+    overlayChordQuality,
     useDisplayedChordDegreeLabels,
     diagramPosition,
     diagramFrets,
@@ -2552,7 +2620,8 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
 
   const scaleIntervals = getScaleIntervalsForQuality(keyQuality);
   const keyPentIntervals = getPentatonicIntervalsForQuality(keyQuality);
-  const chordPentIntervals = getPentatonicIntervalsForQuality(displayedChordQuality);
+  const chordPentQuality = overlayChordQuality || displayedChordQuality;
+  const chordPentIntervals = getPentatonicIntervalsForQuality(chordPentQuality);
   const chordToneIntervals = CHORD_QUALITY_INTERVALS[displayedChordQuality] || CHORD_QUALITY_INTERVALS.major;
 
   const scaleSet = new Set(scaleIntervals.map((interval) => normalizeSemitone(interval)));
@@ -2561,7 +2630,7 @@ function buildRenderedFingers(pattern, transposed, renderContext) {
   const chordToneSet = new Set(chordToneIntervals.map((interval) => normalizeSemitone(interval)));
   const keyDegreeLabels = buildDegreeLabelMap(scaleIntervals);
   const chordDegreeLabels = buildTriadLabelMap(displayedChordQuality);
-  const chordPentLabels = buildChordPentatonicLabelMap(displayedChordQuality);
+  const chordPentLabels = buildChordPentatonicLabelMap(chordPentQuality);
   const voicingPositionSet = new Set();
 
   for (let stringTemplateIndex = 0; stringTemplateIndex < transposed.absoluteFrets.length; stringTemplateIndex += 1) {
@@ -2985,6 +3054,7 @@ function renderChordFromTemplate(SVGuitarChord, options = {}) {
     keyQuality: selection.keyQuality,
     displayedChordRootSemitone: selection.targetRootSemitone,
     displayedChordQuality: selection.targetQuality,
+    overlayChordQuality: selection.overlayChordQuality,
     useDisplayedChordDegreeLabels: true,
     diagramPosition,
     diagramFrets,
