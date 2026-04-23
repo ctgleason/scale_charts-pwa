@@ -36,6 +36,9 @@ header p {
 
 .header-actions {
   margin-top: 0.85rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .menu-toggle,
@@ -93,6 +96,67 @@ header p {
 
 .progression-panel.is-hidden {
   display: none;
+}
+
+.user-guide-panel.is-hidden {
+  display: none;
+}
+
+.guide-intro {
+  margin: 0.5rem 0 0;
+  color: #334155;
+  font-size: 0.94rem;
+}
+
+.guide-section {
+  margin-top: 1rem;
+}
+
+.guide-section h3 {
+  margin-bottom: 0.5rem;
+}
+
+.guide-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #0f172a;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.93rem;
+}
+
+.guide-feature-grid,
+.guide-example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.guide-card,
+.guide-example-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  padding: 0.75rem;
+  color: #0f172a;
+}
+
+.guide-card h4,
+.guide-example-card h4 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.guide-card p,
+.guide-example-card p {
+  margin: 0.45rem 0 0;
+  color: #334155;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.guide-example-card .ghost-btn {
+  margin-top: 0.65rem;
 }
 
 .progression-grid {

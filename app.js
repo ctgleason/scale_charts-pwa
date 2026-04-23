@@ -191,6 +191,7 @@ const appState = {
   overlays: {},
   ui: {
     progressionPanelOpen: false,
+    guidePanelOpen: false,
   },
   progressions: [],
   selectedProgressionId: null,
@@ -211,6 +212,66 @@ const appState = {
     stepId: null,
     stepIndex: null,
     beats: null,
+  },
+};
+
+const GUIDE_EXAMPLES = {
+  'mixolydian-dominant': {
+    root: 'A',
+    accidental: '',
+    quality: 'mixolydian',
+    extension: 'seventh',
+    caged: 'E',
+    degree: 5,
+    overlays: {
+      'overlay-diatonic': true,
+      'overlay-pentatonic': true,
+      'overlay-chord-pentatonic': false,
+      'overlay-chord-tones': true,
+    },
+  },
+  'dorian-minor9': {
+    root: 'D',
+    accidental: '',
+    quality: 'dorian',
+    extension: 'ninth',
+    caged: 'A',
+    degree: 2,
+    overlays: {
+      'overlay-diatonic': true,
+      'overlay-pentatonic': false,
+      'overlay-chord-pentatonic': true,
+      'overlay-chord-tones': true,
+    },
+  },
+  'hendrix-color': {
+    root: 'E',
+    accidental: '',
+    quality: 'mixolydian',
+    extension: 'hendrix',
+    caged: 'D',
+    degree: 1,
+    overlays: {
+      'overlay-diatonic': true,
+      'overlay-pentatonic': false,
+      'overlay-chord-pentatonic': true,
+      'overlay-chord-tones': true,
+    },
+  },
+  'progression-practice': {
+    root: 'G',
+    accidental: '',
+    quality: 'major',
+    extension: 'seventh',
+    caged: 'C',
+    degree: 1,
+    overlays: {
+      'overlay-diatonic': false,
+      'overlay-pentatonic': false,
+      'overlay-chord-pentatonic': true,
+      'overlay-chord-tones': true,
+    },
+    openProgressions: true,
   },
 };
 
@@ -1419,6 +1480,124 @@ function setProgressionPanelOpen(isOpen) {
   if (toggle) {
     toggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
   }
+}
+
+function setGuidePanelOpen(isOpen) {
+  appState.ui.guidePanelOpen = Boolean(isOpen);
+  const panel = document.getElementById('user-guide-panel');
+  const toggle = document.getElementById('guide-menu-toggle');
+  if (panel) {
+    panel.hidden = !isOpen;
+    panel.classList.toggle('is-hidden', !isOpen);
+  }
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
+  }
+}
+
+function syncOverlayControlsFromState() {
+  const container = document.getElementById('overlay-options');
+  if (!container) {
+    return;
+  }
+
+  Array.from(container.querySelectorAll('input[data-overlay-id]')).forEach((checkbox) => {
+    const overlayId = checkbox.dataset.overlayId;
+    checkbox.checked = Boolean(appState.overlays[overlayId]);
+    if (checkbox.parentElement) {
+      checkbox.parentElement.classList.toggle('is-active', checkbox.checked);
+    }
+  });
+}
+
+function applyGuideExample(exampleId) {
+  const example = GUIDE_EXAMPLES[exampleId];
+  if (!example) {
+    return;
+  }
+
+  clearProgressionSelectionContext();
+
+  appState.root = example.root;
+  appState.accidental = normalizeAccidental(example.accidental);
+  appState.quality = example.quality;
+  appState.extension = CHORD_EXTENSION_OPTIONS.includes(example.extension) ? example.extension : 'triad';
+  appState.caged = CAGED_POSITIONS.includes(example.caged) ? example.caged : 'C';
+  appState.degree = Math.min(7, Math.max(1, Number(example.degree) || 1));
+
+  if (example.overlays && typeof example.overlays === 'object') {
+    Object.keys(example.overlays).forEach((overlayId) => {
+      appState.overlays[overlayId] = Boolean(example.overlays[overlayId]);
+    });
+  }
+
+  const root = document.getElementById('root-note');
+  const accidental = document.getElementById('accidental');
+  const quality = document.getElementById('quality');
+  const chordType = document.getElementById('chord-type');
+  if (root) {
+    root.value = appState.root;
+  }
+  if (accidental) {
+    accidental.value = appState.accidental;
+  }
+  if (quality) {
+    quality.value = appState.quality;
+  }
+  if (chordType) {
+    chordType.value = appState.extension;
+  }
+
+  const cagedButtons = document.getElementById('caged-buttons');
+  if (cagedButtons) {
+    Array.from(cagedButtons.querySelectorAll('button[data-voicing]')).forEach((node) => {
+      node.classList.toggle('is-active', node.dataset.voicing === appState.caged);
+    });
+  }
+
+  const degreeButtons = document.getElementById('degree-buttons');
+  if (degreeButtons) {
+    Array.from(degreeButtons.querySelectorAll('button[data-degree]')).forEach((node) => {
+      node.classList.toggle('is-active', Number(node.dataset.degree) === appState.degree);
+    });
+  }
+
+  syncOverlayControlsFromState();
+  updateSelectionTitle();
+  renderCharts();
+
+  if (example.openProgressions) {
+    setProgressionPanelOpen(true);
+  }
+}
+
+function setupGuideControls() {
+  const toggle = document.getElementById('guide-menu-toggle');
+  const closeButton = document.getElementById('guide-close');
+  const panel = document.getElementById('user-guide-panel');
+
+  if (!toggle || !closeButton || !panel) {
+    return;
+  }
+
+  toggle.addEventListener('click', () => {
+    setGuidePanelOpen(!appState.ui.guidePanelOpen);
+  });
+
+  closeButton.addEventListener('click', () => {
+    setGuidePanelOpen(false);
+  });
+
+  panel.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-guide-example]');
+    if (!button) {
+      return;
+    }
+
+    applyGuideExample(button.dataset.guideExample);
+  });
+
+  setGuidePanelOpen(appState.ui.guidePanelOpen);
 }
 
 function setupProgressionControls() {
@@ -3533,6 +3712,7 @@ async function boot() {
   await loadInitialProgressions();
   setupControls();
   setupProgressionControls();
+  setupGuideControls();
   setupTransportControls();
   updateVersionLabel();
   populateOverlayToggles();

@@ -22,6 +22,9 @@
           <button id="progression-menu-toggle" type="button" class="menu-toggle" aria-expanded="false" aria-controls="progression-panel">
             Progressions
           </button>
+          <button id="guide-menu-toggle" type="button" class="menu-toggle" aria-expanded="false" aria-controls="user-guide-panel">
+            User Guide
+          </button>
         </div>
       </header>
 
@@ -120,6 +123,85 @@
             <div id="progression-steps" class="progression-steps"></div>
           </section>
         </div>
+      </section>
+
+      <section id="user-guide-panel" class="panel user-guide-panel is-hidden" aria-label="User guide" hidden>
+        <div class="panel-heading-row">
+          <h2>User Guide</h2>
+          <button id="guide-close" type="button" class="ghost-btn">Close</button>
+        </div>
+
+        <p class="guide-intro">
+          Learn the full workflow in a few minutes: pick a key, choose voicings, explore degree-based harmony,
+          layer overlays, and build playable progressions.
+        </p>
+
+        <section class="guide-section" aria-labelledby="guide-quick-start-title">
+          <h3 id="guide-quick-start-title">Quick Start</h3>
+          <ol class="guide-list">
+            <li>Set Root, Accidental, and Quality in the Chord Options panel to define your key center.</li>
+            <li>Pick Chord type (Triad, 7th, 9th, or Hendrix) to change the harmonic color.</li>
+            <li>Choose a CAGED voicing (C, A, G, E, D) to move the shape to a different neck area.</li>
+            <li>Click Degree buttons (I-VII) to hear and see diatonic movement in the same key.</li>
+            <li>Turn on overlays to visualize scale tones, pentatonic choices, and chord tones together.</li>
+          </ol>
+        </section>
+
+        <section class="guide-section" aria-labelledby="guide-features-title">
+          <h3 id="guide-features-title">Feature Walkthrough</h3>
+          <div class="guide-feature-grid">
+            <article class="guide-card">
+              <h4>Chord Options</h4>
+              <p>Defines the musical context. Root + Quality set the key, Chord type sets the harmony, and Degree picks the Roman numeral within that key.</p>
+            </article>
+            <article class="guide-card">
+              <h4>CAGED Voicing</h4>
+              <p>Select C, A, G, E, or D to bias the chord toward a playable area. Extended chords may use adjacent shapes when needed for complete tones.</p>
+            </article>
+            <article class="guide-card">
+              <h4>Overlays</h4>
+              <p>Show diatonic scale degrees, key pentatonic, chord pentatonic, and chord tones. Use this to connect rhythm shapes with lead targets.</p>
+            </article>
+            <article class="guide-card">
+              <h4>Progressions</h4>
+              <p>Create reusable chord sequences with per-step degree, duration, voicing area, and extension controls. Save, import, and export your library.</p>
+            </article>
+            <article class="guide-card">
+              <h4>Transport</h4>
+              <p>Practice in time with Play, Pause, Stop, Next/Previous step controls, count-in beats, and tempo slider from 30 to 240 BPM.</p>
+            </article>
+            <article class="guide-card">
+              <h4>Preview Fade</h4>
+              <p>When a progression has multiple steps, the next chord can fade in as a visual cue before the change.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="guide-section" aria-labelledby="guide-examples-title">
+          <h3 id="guide-examples-title">Try These Examples</h3>
+          <div class="guide-example-grid">
+            <article class="guide-example-card">
+              <h4>Mixolydian Dominant Color</h4>
+              <p>Loads A Mixolydian with a V dominant 7th shape and scale overlays for lead targeting.</p>
+              <button type="button" class="ghost-btn" data-guide-example="mixolydian-dominant">Load Example</button>
+            </article>
+            <article class="guide-example-card">
+              <h4>Dorian Minor 9 Flavor</h4>
+              <p>Loads D Dorian with a ii-style minor 9 voicing and chord-tone emphasis.</p>
+              <button type="button" class="ghost-btn" data-guide-example="dorian-minor9">Load Example</button>
+            </article>
+            <article class="guide-example-card">
+              <h4>Hendrix 7#9 Sound</h4>
+              <p>Loads E Mixolydian and a Hendrix extension so you can hear and see altered dominant color.</p>
+              <button type="button" class="ghost-btn" data-guide-example="hendrix-color">Load Example</button>
+            </article>
+            <article class="guide-example-card">
+              <h4>Progression Practice Setup</h4>
+              <p>Opens the Progressions panel and sets a practical key/chord context to begin building a 4-step loop.</p>
+              <button type="button" class="ghost-btn" data-guide-example="progression-practice">Open Setup</button>
+            </article>
+          </div>
+        </section>
       </section>
 
       <section class="panel">
