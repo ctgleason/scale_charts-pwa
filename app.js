@@ -110,6 +110,23 @@ const SHARP_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 
 const FLAT_NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const DEGREE_LABELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 const CHORD_EXTENSION_OPTIONS = ['triad', 'seventh', 'ninth', 'hendrix'];
+const CHORD_OVERRIDE_OPTIONS = [
+  'none',
+  'major',
+  'minor',
+  'diminished',
+  'sus2',
+  'sus4',
+  'major6',
+  'minor6',
+  'dominant7',
+  'major7',
+  'minor7',
+  'dominant9',
+  'major9',
+  'minor9',
+  'hendrix',
+];
 const NINTH_VOICING_FALLBACKS = {
   major9: {},
   minor9: {},
@@ -135,6 +152,10 @@ const CHORD_QUALITY_INTERVALS = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   diminished: [0, 3, 6],
+  sus2: [0, 2, 7],
+  sus4: [0, 5, 7],
+  major6: [0, 4, 7, 9],
+  minor6: [0, 3, 7, 9],
   hendrix: [0, 4, 10, 3],
   major7: [0, 4, 7, 11],
   minor7: [0, 3, 7, 10],
@@ -152,6 +173,10 @@ function normalizeSemitone(value) {
 
 function normalizeAccidental(value) {
   return value === '#' || value === 'b' ? value : '';
+}
+
+function normalizeChordOverride(value) {
+  return CHORD_OVERRIDE_OPTIONS.includes(value) ? value : 'none';
 }
 
 function parseNote(root, accidental = '') {
@@ -185,6 +210,7 @@ const appState = {
   root: 'A',
   accidental: '',
   quality: 'major',
+  chordOverride: 'none',
   extension: 'triad',
   caged: 'C',
   degree: 1,
@@ -285,8 +311,12 @@ function createDefaultProgressionStep(defaults = {}) {
     degree: 1,
     root: NATURAL_NOTE_TO_SEMITONE[defaults.root] !== undefined ? defaults.root : 'A',
     accidental: normalizeAccidental(defaults.accidental),
-    quality: defaults.quality === 'minor' || defaults.quality === 'diminished' ? defaults.quality : 'major',
+    quality:
+      defaults.quality === 'minor' || defaults.quality === 'diminished' || defaults.quality === 'none'
+        ? defaults.quality
+        : 'none',
     extension: CHORD_EXTENSION_OPTIONS.includes(defaults.extension) ? defaults.extension : 'triad',
+    chordOverride: normalizeChordOverride(defaults.chordOverride),
     useDiatonicChord: true,
     beats: 4,
     cagedArea: 'C',
@@ -323,8 +353,12 @@ function sanitizeProgressionStep(step = {}) {
     degree: Math.min(7, Math.max(1, Number(step.degree) || 1)),
     root: NATURAL_NOTE_TO_SEMITONE[step.root] !== undefined ? step.root : 'A',
     accidental: normalizeAccidental(step.accidental),
-    quality: step.quality === 'minor' || step.quality === 'diminished' ? step.quality : 'major',
+    quality:
+      step.quality === 'minor' || step.quality === 'diminished' || step.quality === 'none'
+        ? step.quality
+        : 'none',
     extension: CHORD_EXTENSION_OPTIONS.includes(step.extension) ? step.extension : 'triad',
+    chordOverride: normalizeChordOverride(step.chordOverride),
     useDiatonicChord: step.useDiatonicChord !== false,
     beats: Math.min(16, Math.max(1, Number(step.beats) || 4)),
     cagedArea: CAGED_POSITIONS.includes(step.cagedArea) ? step.cagedArea : 'C',
@@ -534,13 +568,18 @@ function resolveProgressionStepState(progression, step) {
     accidental: progression.keyAccidental,
     quality: progression.keyQuality,
     extension: step.extension,
+    chordOverride: normalizeChordOverride(step.chordOverride),
     degree: step.degree,
   };
   return {
     root: step.useDiatonicChord ? keyState.root : step.root,
     accidental: step.useDiatonicChord ? keyState.accidental : normalizeAccidental(step.accidental),
-    quality: step.useDiatonicChord ? keyState.quality : step.quality,
+    quality:
+      step.useDiatonicChord || step.quality === 'none'
+        ? keyState.quality
+        : step.quality,
     extension: step.extension,
+    chordOverride: keyState.chordOverride,
     caged: step.cagedArea,
     degree: step.degree,
   };
@@ -845,6 +884,7 @@ function applyProgressionStepToMainView(progression, step) {
   appState.root = resolvedState.root;
   appState.accidental = resolvedState.accidental;
   appState.quality = resolvedState.quality;
+  appState.chordOverride = normalizeChordOverride(resolvedState.chordOverride);
   appState.extension = resolvedState.extension;
   appState.caged = resolvedState.caged;
   appState.degree = resolvedState.degree;
@@ -860,6 +900,7 @@ function applyProgressionStepToMainView(progression, step) {
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
+  const chordOverride = document.getElementById('chord-override');
   const chordType = document.getElementById('chord-type');
   if (root) {
     root.value = appState.root;
@@ -869,6 +910,9 @@ function applyProgressionStepToMainView(progression, step) {
   }
   if (quality) {
     quality.value = appState.quality;
+  }
+  if (chordOverride) {
+    chordOverride.value = appState.chordOverride;
   }
   if (chordType) {
     chordType.value = appState.extension;
@@ -1151,6 +1195,7 @@ function addProgressionStep() {
       accidental: appState.progressionDraft.keyAccidental,
       quality: appState.progressionDraft.keyQuality,
       extension: appState.extension,
+      chordOverride: appState.chordOverride,
     })
   );
   renderProgressionPanel();
@@ -1304,6 +1349,30 @@ function buildCagedOptionsMarkup(selectedValue) {
   ).join('');
 }
 
+function buildChordOverrideOptionsMarkup(selectedValue) {
+  const options = [
+    ['none', 'None (use diatonic/default)'],
+    ['major', 'Major'],
+    ['minor', 'Minor'],
+    ['diminished', 'Diminished'],
+    ['sus2', 'Sus2'],
+    ['sus4', 'Sus4'],
+    ['major6', '6'],
+    ['minor6', 'm6'],
+    ['dominant7', '7'],
+    ['major7', 'maj7'],
+    ['minor7', 'm7'],
+    ['dominant9', '9'],
+    ['major9', 'maj9'],
+    ['minor9', 'm9'],
+    ['hendrix', '7#9 (Hendrix)'],
+  ];
+
+  return options
+    .map(([value, label]) => `<option value="${value}"${value === selectedValue ? ' selected' : ''}>${label}</option>`)
+    .join('');
+}
+
 function renderProgressionLibrary() {
   const container = document.getElementById('progression-list');
   if (!container) {
@@ -1386,8 +1455,9 @@ function renderProgressionSteps() {
             </label>
 
             <label class="control-field">
-              <span>Quality override</span>
+              <span>Triad basis</span>
               <select data-step-field="quality">
+                <option value="none"${step.quality === 'none' ? ' selected' : ''}>None (use key mode)</option>
                 <option value="major"${step.quality === 'major' ? ' selected' : ''}>Major</option>
                 <option value="minor"${step.quality === 'minor' ? ' selected' : ''}>Minor</option>
                 <option value="diminished"${step.quality === 'diminished' ? ' selected' : ''}>Diminished</option>
@@ -1401,6 +1471,13 @@ function renderProgressionSteps() {
                 <option value="seventh"${step.extension === 'seventh' ? ' selected' : ''}>7th</option>
                 <option value="ninth"${step.extension === 'ninth' ? ' selected' : ''}>9th</option>
                 <option value="hendrix"${step.extension === 'hendrix' ? ' selected' : ''}>Hendrix (7#9)</option>
+              </select>
+            </label>
+
+            <label class="control-field">
+              <span>Chord override</span>
+              <select data-step-field="chordOverride">
+                ${buildChordOverrideOptionsMarkup(normalizeChordOverride(step.chordOverride))}
               </select>
             </label>
 
@@ -1521,6 +1598,7 @@ function applyGuideExample(exampleId) {
   appState.root = example.root;
   appState.accidental = normalizeAccidental(example.accidental);
   appState.quality = example.quality;
+  appState.chordOverride = normalizeChordOverride(example.chordOverride);
   appState.extension = CHORD_EXTENSION_OPTIONS.includes(example.extension) ? example.extension : 'triad';
   appState.caged = CAGED_POSITIONS.includes(example.caged) ? example.caged : 'C';
   appState.degree = Math.min(7, Math.max(1, Number(example.degree) || 1));
@@ -1534,6 +1612,7 @@ function applyGuideExample(exampleId) {
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
+  const chordOverride = document.getElementById('chord-override');
   const chordType = document.getElementById('chord-type');
   if (root) {
     root.value = appState.root;
@@ -1543,6 +1622,9 @@ function applyGuideExample(exampleId) {
   }
   if (quality) {
     quality.value = appState.quality;
+  }
+  if (chordOverride) {
+    chordOverride.value = appState.chordOverride;
   }
   if (chordType) {
     chordType.value = appState.extension;
@@ -1738,6 +1820,8 @@ function setupProgressionControls() {
     const normalizedValue =
       stepField === 'degree' || stepField === 'beats'
         ? Number(value)
+        : stepField === 'chordOverride'
+          ? normalizeChordOverride(value)
         : stepField === 'accidental'
           ? normalizeAccidental(value)
           : value;
@@ -1757,6 +1841,8 @@ function setupProgressionControls() {
     const normalizedValue =
       stepField === 'degree' || stepField === 'beats'
         ? Number(value)
+        : stepField === 'chordOverride'
+          ? normalizeChordOverride(value)
         : stepField === 'accidental'
           ? normalizeAccidental(value)
           : value;
@@ -1803,7 +1889,16 @@ function getQualityLabel(quality) {
 
 function getChordSymbol(state = appState) {
   const note = parseSelectedNote(state);
-  return `${note.preferredName}${getQualitySuffix(getExtendedChordQuality(state.quality, state.extension))}`;
+  return `${note.preferredName}${getQualitySuffix(getEffectiveChordQuality(state))}`;
+}
+
+function getEffectiveChordQuality(state = appState) {
+  const overrideQuality = normalizeChordOverride(state.chordOverride);
+  if (overrideQuality !== 'none') {
+    return overrideQuality;
+  }
+
+  return getExtendedChordQuality(state.quality, state.extension);
 }
 
 function getExtendedChordQuality(baseQuality, extension = appState.extension) {
@@ -1835,6 +1930,10 @@ function getExtendedChordQuality(baseQuality, extension = appState.extension) {
 function getQualitySuffix(quality) {
   if (quality === 'minor') return 'm';
   if (quality === 'diminished') return 'dim';
+  if (quality === 'sus2') return 'sus2';
+  if (quality === 'sus4') return 'sus4';
+  if (quality === 'major6') return '6';
+  if (quality === 'minor6') return 'm6';
   if (quality === 'hendrix') return '7#9';
   if (quality === 'major7') return 'maj7';
   if (quality === 'minor7') return 'm7';
@@ -2365,6 +2464,67 @@ const EMBEDDED_HALF_DIMINISHED7_VOICINGS = [
   },
 ];
 
+const CAGED_REFERENCE_ROOTS = {
+  C: { referenceRoot: 'C', aStringRootFret: 3 },
+  A: { referenceRoot: 'A', aStringRootFret: 12 },
+  G: { referenceRoot: 'G', aStringRootFret: 10 },
+  E: { referenceRoot: 'E', aStringRootFret: 7 },
+  D: { referenceRoot: 'D', aStringRootFret: 5 },
+};
+
+function createAStringShellVoicings({ quality, label, idPrefix, fretsFromRoot }) {
+  return CAGED_POSITIONS.map((caged) => {
+    const rootConfig = CAGED_REFERENCE_ROOTS[caged];
+    return {
+      id: `${idPrefix}-${caged.toLowerCase()}`,
+      label,
+      type: 'voicing',
+      quality,
+      caged,
+      referenceRoot: rootConfig.referenceRoot,
+      relativeFrets: fretsFromRoot.map((fret) => {
+        if (fret === 'x') {
+          return 'x';
+        }
+
+        return rootConfig.aStringRootFret + fret;
+      }),
+    };
+  });
+}
+
+const EMBEDDED_SUS2_VOICINGS = createAStringShellVoicings({
+  quality: 'sus2',
+  label: 'Sus2',
+  idPrefix: 'fallback-voicing-sus2',
+  // A=root, G=5th, B=2nd
+  fretsFromRoot: ['x', 0, 'x', -3, 0, 'x'],
+});
+
+const EMBEDDED_SUS4_VOICINGS = createAStringShellVoicings({
+  quality: 'sus4',
+  label: 'Sus4',
+  idPrefix: 'fallback-voicing-sus4',
+  // A=root, D=4th, G=5th
+  fretsFromRoot: ['x', 0, 0, -3, 'x', 'x'],
+});
+
+const EMBEDDED_MAJOR6_VOICINGS = createAStringShellVoicings({
+  quality: 'major6',
+  label: '6',
+  idPrefix: 'fallback-voicing-major6',
+  // A=root, D=3rd, G=6th, B=root
+  fretsFromRoot: ['x', 0, -1, -1, -2, 'x'],
+});
+
+const EMBEDDED_MINOR6_VOICINGS = createAStringShellVoicings({
+  quality: 'minor6',
+  label: 'm6',
+  idPrefix: 'fallback-voicing-minor6',
+  // A=root, D=b3, G=6th, B=root
+  fretsFromRoot: ['x', 0, -2, -1, -2, 'x'],
+});
+
 function getVoicingCandidatesByQuality(quality) {
   const matches = catalog.voicings.filter((voicing) => voicing.quality === quality);
   if (matches.length > 0) {
@@ -2411,6 +2571,22 @@ function getVoicingCandidatesByQuality(quality) {
     return EMBEDDED_DIMINISHED_VOICINGS;
   }
 
+  if (quality === 'sus2') {
+    return EMBEDDED_SUS2_VOICINGS;
+  }
+
+  if (quality === 'sus4') {
+    return EMBEDDED_SUS4_VOICINGS;
+  }
+
+  if (quality === 'major6') {
+    return EMBEDDED_MAJOR6_VOICINGS;
+  }
+
+  if (quality === 'minor6') {
+    return EMBEDDED_MINOR6_VOICINGS;
+  }
+
   return [];
 }
 
@@ -2430,7 +2606,7 @@ function getDegreeSelection(state = appState) {
   const keyNote = parseSelectedNote(state);
   const degreeIndex = getDegreeIndex(state);
   const degreeLabel = getDegreeLabelByIndex(degreeIndex);
-  // When in a progression context, use the progression's key quality for scale/degree, not the chord's quality
+  // When in a progression context, use the progression key mode for scale/degree, not the chord's triad basis
   const keyQuality = (state === appState && appState.selectionContext.source === 'progression' && appState.progressionKeyQuality)
     ? appState.progressionKeyQuality
     : state.quality;
@@ -2441,8 +2617,7 @@ function getDegreeSelection(state = appState) {
   const targetRootSemitone = normalizeSemitone(keyNote.semitone + targetInterval);
   const targetTriadQuality = triadQualities[degreeIndex] || 'major';
   const targetSeventhQuality = seventhQualities[degreeIndex] || 'major7';
-  const overlayChordQuality = state.extension === 'triad' ? targetTriadQuality : targetSeventhQuality;
-  const targetQuality =
+  const defaultTargetQuality =
     state.extension === 'triad'
       ? targetTriadQuality
       : state.extension === 'hendrix'
@@ -2452,6 +2627,9 @@ function getDegreeSelection(state = appState) {
           ? 'hendrix'
           : getExtendedChordQuality(targetSeventhQuality, 'ninth')
         : targetSeventhQuality;
+  const overrideQuality = normalizeChordOverride(state.chordOverride);
+  const targetQuality = overrideQuality === 'none' ? defaultTargetQuality : overrideQuality;
+  const overlayChordQuality = targetQuality;
   const targetRootName = getNoteNameBySemitone(targetRootSemitone, state.accidental);
   const targetSymbol = `${targetRootName}${getQualitySuffix(targetQuality)}`;
 
@@ -2620,6 +2798,7 @@ function pickBestExtendedVoicing(selection, state, baseTransposed, candidatePatt
 }
 
 function resolveVoicingForSelection(selection, state = appState) {
+  const hasChordOverride = normalizeChordOverride(state.chordOverride) !== 'none';
   const anchorQuality =
     state.extension === 'triad'
       ? getTriadVoicingQuality(state.quality)
@@ -2633,7 +2812,7 @@ function resolveVoicingForSelection(selection, state = appState) {
 
   const baseTransposed = transposeVoicing(basePattern, selection.keyRootSemitone);
   if (selection.isTonic) {
-    if (state.extension !== 'ninth' && state.extension !== 'hendrix') {
+    if (!hasChordOverride && state.extension !== 'ninth' && state.extension !== 'hendrix') {
       // triad / seventh: use the anchor shape directly
       const tonicTransposed = transposeVoicing(basePattern, selection.targetRootSemitone);
       return {
@@ -2643,25 +2822,10 @@ function resolveVoicingForSelection(selection, state = appState) {
         anchorPosition: baseTransposed.position,
       };
     }
-    // ninth/hendrix: choose the nearest playable complete voicing
-    const tonicNinthCandidates = getVoicingCandidatesByQuality(selection.targetQuality);
-    const bestTonic = pickBestExtendedVoicing(
-      selection,
-      state,
-      baseTransposed,
-      tonicNinthCandidates
-    );
-
-    return {
-      pattern: bestTonic.pattern,
-      transposed: bestTonic.transposed,
-      caged: bestTonic.pattern.caged,
-      anchorPosition: bestTonic.transposed.position,
-    };
   }
 
   let candidatePatterns = getVoicingCandidatesByQuality(
-    state.extension === 'triad'
+    state.extension === 'triad' && !hasChordOverride
       ? (selection.targetTriadQuality || selection.targetQuality)
       : selection.targetQuality  // 'seventh' → e.g. major7; 'ninth' → e.g. major9 (falls back to major7 shapes)
   );
@@ -2670,7 +2834,7 @@ function resolveVoicingForSelection(selection, state = appState) {
     throw new Error(`No ${selection.targetTriadQuality || selection.targetQuality} voicing templates available.`);
   }
 
-  if (state.extension === 'ninth' || state.extension === 'hendrix') {
+  if (state.extension === 'ninth' || state.extension === 'hendrix' || hasChordOverride) {
     const bestExtended = pickBestExtendedVoicing(
       selection,
       state,
@@ -2975,6 +3139,8 @@ function getScaleIntervalsForQuality(quality) {
   const normalizedQuality =
     quality === 'minor7' || quality === 'minor9'
       ? 'minor'
+      : quality === 'minor6'
+        ? 'minor'
       : quality === 'diminished' || quality === 'half-diminished7' || quality === 'half-diminished9'
         ? 'minor'
         : quality === 'major7' || quality === 'major9' || quality === 'dominant7' || quality === 'dominant9'
@@ -2999,6 +3165,7 @@ function getPentatonicIntervalsForQuality(quality) {
     quality === 'dorian' ||
     quality === 'minor7' ||
     quality === 'minor9' ||
+    quality === 'minor6' ||
     quality === 'diminished' ||
     quality === 'half-diminished7' ||
     quality === 'half-diminished9';
@@ -3019,6 +3186,10 @@ function buildTriadLabelMap(quality) {
     major: ['1', '3', '5'],
     minor: ['1', 'b3', '5'],
     diminished: ['1', 'b3', 'b5'],
+    sus2: ['1', '2', '5'],
+    sus4: ['1', '4', '5'],
+    major6: ['1', '3', '5', '6'],
+    minor6: ['1', 'b3', '5', '6'],
     hendrix: ['1', '3', 'b7', '#9'],
     major7: ['1', '3', '5', '7'],
     minor7: ['1', 'b3', '5', 'b7'],
@@ -3588,7 +3759,7 @@ async function renderCharts() {
 
     const svgCount = document.querySelectorAll('.chart svg').length;
     setDiagnostics(
-      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nKey: ${getChordSymbol()}\nChord type: ${appState.extension}\nDisplayed chord: ${renderResult.renderedDegreeLabel} (${renderResult.renderedChordSymbol})`,
+      `Version: ${APP_VERSION}\nSVGuitar loaded: yes\nRendered SVG nodes: ${svgCount}\nKey: ${getChordSymbol()}\nChord type: ${appState.extension}\nChord override: ${appState.chordOverride}\nDisplayed chord: ${renderResult.renderedDegreeLabel} (${renderResult.renderedChordSymbol})`,
       svgCount === 0
     );
 
@@ -3610,17 +3781,19 @@ function setupControls() {
   const root = document.getElementById('root-note');
   const accidental = document.getElementById('accidental');
   const quality = document.getElementById('quality');
+  const chordOverride = document.getElementById('chord-override');
   const chordType = document.getElementById('chord-type');
   const cagedButtons = document.getElementById('caged-buttons');
   const degreeButtons = document.getElementById('degree-buttons');
 
-  if (!root || !accidental || !quality || !chordType || !cagedButtons || !degreeButtons) {
+  if (!root || !accidental || !quality || !chordOverride || !chordType || !cagedButtons || !degreeButtons) {
     return;
   }
 
   root.value = appState.root;
   accidental.value = appState.accidental;
   quality.value = appState.quality;
+  chordOverride.value = appState.chordOverride;
   chordType.value = appState.extension;
 
   root.addEventListener('change', () => {
@@ -3640,6 +3813,13 @@ function setupControls() {
   quality.addEventListener('change', () => {
     clearProgressionSelectionContext();
     appState.quality = quality.value;
+    updateSelectionTitle();
+    renderCharts();
+  });
+
+  chordOverride.addEventListener('change', () => {
+    clearProgressionSelectionContext();
+    appState.chordOverride = normalizeChordOverride(chordOverride.value);
     updateSelectionTitle();
     renderCharts();
   });

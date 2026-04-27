@@ -86,7 +86,7 @@
               </label>
 
               <label class="control-field">
-                <span>Key quality</span>
+                <span>Key mode</span>
                 <select id="progression-quality">
                   <option value="major">Major</option>
                   <option value="minor">Minor</option>
@@ -139,7 +139,7 @@
         <section class="guide-section" aria-labelledby="guide-quick-start-title">
           <h3 id="guide-quick-start-title">Quick Start</h3>
           <ol class="guide-list">
-            <li>Set Root, Accidental, and Quality in the Chord Options panel to define your key center.</li>
+            <li>Set Root, Accidental, and Mode in the Chord Options panel to define your key center.</li>
             <li>Pick Chord type (Triad, 7th, 9th, or Hendrix) to change the harmonic color.</li>
             <li>Choose a CAGED voicing (C, A, G, E, D) to move the shape to a different neck area.</li>
             <li>Click Degree buttons (I-VII) to hear and see diatonic movement in the same key.</li>
@@ -152,7 +152,7 @@
           <div class="guide-feature-grid">
             <article class="guide-card">
               <h4>Chord Options</h4>
-              <p>Defines the musical context. Root + Quality set the key, Chord type sets the harmony, and Degree picks the Roman numeral within that key.</p>
+              <p>Defines the musical context. Root + Mode set the key, Chord type sets the harmony, and Degree picks the Roman numeral within that key.</p>
             </article>
             <article class="guide-card">
               <h4>CAGED Voicing</h4>
@@ -230,12 +230,33 @@
           </label>
 
           <label class="control-field">
-            <span>Quality</span>
+            <span>Mode</span>
             <select id="quality">
               <option value="major">Major</option>
               <option value="minor">Minor</option>
               <option value="dorian">Dorian</option>
               <option value="mixolydian">Mixolydian</option>
+            </select>
+          </label>
+
+          <label class="control-field">
+            <span>Chord override</span>
+            <select id="chord-override">
+              <option value="none">None (use diatonic/default)</option>
+              <option value="major">Major</option>
+              <option value="minor">Minor</option>
+              <option value="diminished">Diminished</option>
+              <option value="sus2">Sus2</option>
+              <option value="sus4">Sus4</option>
+              <option value="major6">6</option>
+              <option value="minor6">m6</option>
+              <option value="dominant7">7</option>
+              <option value="major7">maj7</option>
+              <option value="minor7">m7</option>
+              <option value="dominant9">9</option>
+              <option value="major9">maj9</option>
+              <option value="minor9">m9</option>
+              <option value="hendrix">7#9 (Hendrix)</option>
             </select>
           </label>
 
