@@ -2464,66 +2464,197 @@ const EMBEDDED_HALF_DIMINISHED7_VOICINGS = [
   },
 ];
 
-const CAGED_REFERENCE_ROOTS = {
-  C: { referenceRoot: 'C', aStringRootFret: 3 },
-  A: { referenceRoot: 'A', aStringRootFret: 12 },
-  G: { referenceRoot: 'G', aStringRootFret: 10 },
-  E: { referenceRoot: 'E', aStringRootFret: 7 },
-  D: { referenceRoot: 'D', aStringRootFret: 5 },
-};
+const EMBEDDED_SUS2_VOICINGS = [
+  {
+    id: 'fallback-voicing-sus2-c',
+    label: 'Sus2',
+    type: 'voicing',
+    quality: 'sus2',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 0, 0, 3, 3],
+  },
+  {
+    id: 'fallback-voicing-sus2-a',
+    label: 'Sus2',
+    type: 'voicing',
+    quality: 'sus2',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 2, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-sus2-g',
+    label: 'Sus2',
+    type: 'voicing',
+    quality: 'sus2',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 0, 0, 0, 3, 3],
+  },
+  {
+    id: 'fallback-voicing-sus2-e',
+    label: 'Sus2',
+    type: 'voicing',
+    quality: 'sus2',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 4, 4, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-sus2-d',
+    label: 'Sus2',
+    type: 'voicing',
+    quality: 'sus2',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 3, 0],
+  },
+];
 
-function createAStringShellVoicings({ quality, label, idPrefix, fretsFromRoot }) {
-  return CAGED_POSITIONS.map((caged) => {
-    const rootConfig = CAGED_REFERENCE_ROOTS[caged];
-    return {
-      id: `${idPrefix}-${caged.toLowerCase()}`,
-      label,
-      type: 'voicing',
-      quality,
-      caged,
-      referenceRoot: rootConfig.referenceRoot,
-      relativeFrets: fretsFromRoot.map((fret) => {
-        if (fret === 'x') {
-          return 'x';
-        }
+const EMBEDDED_SUS4_VOICINGS = [
+  {
+    id: 'fallback-voicing-sus4-c',
+    label: 'Sus4',
+    type: 'voicing',
+    quality: 'sus4',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 3, 0, 1, 1],
+  },
+  {
+    id: 'fallback-voicing-sus4-a',
+    label: 'Sus4',
+    type: 'voicing',
+    quality: 'sus4',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 2, 3, 0],
+  },
+  {
+    id: 'fallback-voicing-sus4-g',
+    label: 'Sus4',
+    type: 'voicing',
+    quality: 'sus4',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 3, 0, 0, 1, 3],
+  },
+  {
+    id: 'fallback-voicing-sus4-e',
+    label: 'Sus4',
+    type: 'voicing',
+    quality: 'sus4',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 2, 2, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-sus4-d',
+    label: 'Sus4',
+    type: 'voicing',
+    quality: 'sus4',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 3, 3],
+  },
+];
 
-        return rootConfig.aStringRootFret + fret;
-      }),
-    };
-  });
-}
+const EMBEDDED_MAJOR6_VOICINGS = [
+  {
+    id: 'fallback-voicing-major6-c',
+    label: '6',
+    type: 'voicing',
+    quality: 'major6',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 2, 2, 1, 0],
+  },
+  {
+    id: 'fallback-voicing-major6-a',
+    label: '6',
+    type: 'voicing',
+    quality: 'major6',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 2, 2, 2],
+  },
+  {
+    id: 'fallback-voicing-major6-g',
+    label: '6',
+    type: 'voicing',
+    quality: 'major6',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 2, 0, 0, 0, 0],
+  },
+  {
+    id: 'fallback-voicing-major6-e',
+    label: '6',
+    type: 'voicing',
+    quality: 'major6',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 2, 1, 2, 0],
+  },
+  {
+    id: 'fallback-voicing-major6-d',
+    label: '6',
+    type: 'voicing',
+    quality: 'major6',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 0, 2],
+  },
+];
 
-const EMBEDDED_SUS2_VOICINGS = createAStringShellVoicings({
-  quality: 'sus2',
-  label: 'Sus2',
-  idPrefix: 'fallback-voicing-sus2',
-  // A=root, G=5th, B=2nd
-  fretsFromRoot: ['x', 0, 'x', -3, 0, 'x'],
-});
-
-const EMBEDDED_SUS4_VOICINGS = createAStringShellVoicings({
-  quality: 'sus4',
-  label: 'Sus4',
-  idPrefix: 'fallback-voicing-sus4',
-  // A=root, D=4th, G=5th
-  fretsFromRoot: ['x', 0, 0, -3, 'x', 'x'],
-});
-
-const EMBEDDED_MAJOR6_VOICINGS = createAStringShellVoicings({
-  quality: 'major6',
-  label: '6',
-  idPrefix: 'fallback-voicing-major6',
-  // A=root, D=3rd, G=6th, B=root
-  fretsFromRoot: ['x', 0, -1, -1, -2, 'x'],
-});
-
-const EMBEDDED_MINOR6_VOICINGS = createAStringShellVoicings({
-  quality: 'minor6',
-  label: 'm6',
-  idPrefix: 'fallback-voicing-minor6',
-  // A=root, D=b3, G=6th, B=root
-  fretsFromRoot: ['x', 0, -2, -1, -2, 'x'],
-});
+const EMBEDDED_MINOR6_VOICINGS = [
+  {
+    id: 'fallback-voicing-minor6-c',
+    label: 'm6',
+    type: 'voicing',
+    quality: 'minor6',
+    caged: 'C',
+    referenceRoot: 'C',
+    relativeFrets: ['x', 3, 1, 2, 1, 'x'],
+  },
+  {
+    id: 'fallback-voicing-minor6-a',
+    label: 'm6',
+    type: 'voicing',
+    quality: 'minor6',
+    caged: 'A',
+    referenceRoot: 'A',
+    relativeFrets: ['x', 0, 2, 2, 1, 2],
+  },
+  {
+    id: 'fallback-voicing-minor6-g',
+    label: 'm6',
+    type: 'voicing',
+    quality: 'minor6',
+    caged: 'G',
+    referenceRoot: 'G',
+    relativeFrets: [3, 'x', 2, 3, 3, 3],
+  },
+  {
+    id: 'fallback-voicing-minor6-e',
+    label: 'm6',
+    type: 'voicing',
+    quality: 'minor6',
+    caged: 'E',
+    referenceRoot: 'E',
+    relativeFrets: [0, 2, 2, 0, 2, 0],
+  },
+  {
+    id: 'fallback-voicing-minor6-d',
+    label: 'm6',
+    type: 'voicing',
+    quality: 'minor6',
+    caged: 'D',
+    referenceRoot: 'D',
+    relativeFrets: ['x', 'x', 0, 2, 0, 1],
+  },
+];
 
 function getVoicingCandidatesByQuality(quality) {
   const matches = catalog.voicings.filter((voicing) => voicing.quality === quality);
