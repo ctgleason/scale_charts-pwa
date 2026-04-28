@@ -233,7 +233,7 @@ const appState = {
     previewAnimationFrameId: null,
   },
   backing: {
-    mix: 'none',        // 'none' | 'bass' | 'bass-drums'
+    mix: 'none',        // 'none' | 'bass' | 'bass-drums' | 'bass-drums-piano'
     bassStyle: 'root-5th', // 'root' | 'root-5th' | 'octave' | 'walking'
   },
   selectionContext: {
@@ -690,13 +690,23 @@ function playTestTone() {
 const MIDI_BASS_ROOT_OFFSET = 36; // MIDI C2  – bass root zone base offset
 const BASS_SAMPLE_LOWEST_MIDI = 28; // E1
 const BASS_SAMPLE_HIGHEST_MIDI = 55; // G3
+const MIDI_PIANO_ROOT_OFFSET = 48; // MIDI C3 – piano chord root zone base offset
+const PIANO_SAMPLE_LOWEST_MIDI = 48; // C3
+const PIANO_SAMPLE_HIGHEST_MIDI = 72; // C5
 const BASS_SAMPLE_PITCH_CLASSES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 const backingSampleState = {
   loadPromise: null,
   bassBuffers: new Map(),
+  pianoBuffers: new Map(),
 };
 
 function midiToBassSampleName(midi) {
+  const pitchClass = BASS_SAMPLE_PITCH_CLASSES[midi % 12];
+  const octave = Math.floor(midi / 12) - 1;
+  return `${pitchClass}${octave}`;
+}
+
+function midiToPianoSampleName(midi) {
   const pitchClass = BASS_SAMPLE_PITCH_CLASSES[midi % 12];
   const octave = Math.floor(midi / 12) - 1;
   return `${pitchClass}${octave}`;
@@ -731,6 +741,20 @@ async function ensureBackingSamplesLoaded() {
 
     bassEntries.forEach(([midi, buffer]) => {
       backingSampleState.bassBuffers.set(midi, buffer);
+    });
+
+    const pianoEntries = [];
+    for (let midi = PIANO_SAMPLE_LOWEST_MIDI; midi <= PIANO_SAMPLE_HIGHEST_MIDI; midi += 1) {
+      const noteName = midiToPianoSampleName(midi);
+      const buffer = await fetchAndDecodeAudioBuffer(
+        ctx,
+        `./data/audio/piano/acoustic-grand-piano-${noteName}.mp3`
+      );
+      pianoEntries.push([midi, buffer]);
+    }
+
+    pianoEntries.forEach(([midi, buffer]) => {
+      backingSampleState.pianoBuffers.set(midi, buffer);
     });
 
     return true;
@@ -807,6 +831,22 @@ function scheduleBassSample(ctx, midiNote, startTime, duration, gain = 0.55) {
   return true;
 }
 
+function schedulePianoSample(ctx, midiNote, startTime, duration, gain = 0.24) {
+  const buffer = backingSampleState.pianoBuffers.get(midiNote);
+  if (!buffer) {
+    return false;
+  }
+
+  scheduleBufferSource(ctx, buffer, startTime, {
+    gain,
+    duration,
+    attack: 0.004,
+    release: 0.16,
+    filterFrequency: 4200,
+  });
+  return true;
+}
+
 function midiToFreq(midi) {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
@@ -818,6 +858,11 @@ function bassRootMidi(rootSemitone) {
   if (midi < 28) midi += 12;
   if (midi > 43) midi -= 12;
   return midi;
+}
+
+function pianoRootMidi(rootSemitone) {
+  // Keep chord roots in C3-B3 zone for a compact comping register.
+  return MIDI_PIANO_ROOT_OFFSET + rootSemitone;
 }
 
 // Play a single bass note using local samples when available, with synth fallback.
@@ -926,6 +971,34 @@ function scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBea
 
   for (const n of notes) {
     scheduleBassNote(ctx, n.midi, stepStartTime + n.beat * beatDuration, n.dur);
+  }
+}
+
+function getPianoChordNotes(rootSemitone, chordQuality) {
+  const root = pianoRootMidi(rootSemitone);
+  const intervals = CHORD_QUALITY_INTERVALS[chordQuality] || CHORD_QUALITY_INTERVALS.major;
+  const selectedIntervals = intervals.slice(0, 4);
+
+  const notes = [];
+  for (const interval of selectedIntervals) {
+    let note = root + interval;
+    while (notes.length > 0 && note <= notes[notes.length - 1]) {
+      note += 12;
+    }
+    notes.push(note);
+  }
+
+  return notes;
+}
+
+function scheduleStepPiano(ctx, stepStartTime, beatDuration, rootSemitone, numBeats, chordQuality) {
+  const chordNotes = getPianoChordNotes(rootSemitone, chordQuality);
+  for (let b = 0; b < numBeats; b++) {
+    const beatStart = stepStartTime + b * beatDuration;
+    for (let index = 0; index < chordNotes.length; index += 1) {
+      const noteStart = beatStart + index * 0.006;
+      schedulePianoSample(ctx, chordNotes[index], noteStart, beatDuration * 0.88);
+    }
   }
 }
 
@@ -1056,14 +1129,19 @@ function scheduleBackingForStep(progression, stepIndex) {
   // Resolve chord root semitone for this step
   const resolvedState = resolveProgressionStepState(progression, step);
   const selection = getDegreeSelectionForState(resolvedState);
-  const rootSemitone = selection.targetRootSemitone;
-  const chordQuality = selection.targetQuality;
+  const rootSemitone = step.useDiatonicChord
+    ? selection.targetRootSemitone
+    : parseNote(resolvedState.root, resolvedState.accidental).semitone;
+  const chordQuality = getEffectiveChordQuality(resolvedState);
 
-  if (mix === 'bass' || mix === 'bass-drums') {
+  if (mix === 'bass' || mix === 'bass-drums' || mix === 'bass-drums-piano') {
     scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBeats, appState.backing.bassStyle, chordQuality);
   }
-  if (mix === 'bass-drums') {
+  if (mix === 'bass-drums' || mix === 'bass-drums-piano') {
     scheduleStepDrums(ctx, stepStartTime, beatDuration, numBeats);
+  }
+  if (mix === 'bass-drums-piano') {
+    scheduleStepPiano(ctx, stepStartTime, beatDuration, rootSemitone, numBeats, chordQuality);
   }
 }
 
