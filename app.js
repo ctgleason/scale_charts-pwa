@@ -232,6 +232,10 @@ const appState = {
     timerId: null,
     previewAnimationFrameId: null,
   },
+  backing: {
+    mix: 'none',        // 'none' | 'bass' | 'bass-drums'
+    bassStyle: 'root-5th', // 'root' | 'root-5th' | 'octave' | 'walking'
+  },
   selectionContext: {
     source: 'manual',
     progressionId: null,
@@ -662,6 +666,269 @@ function playTestTone() {
   }
 }
 
+// ── Backing Track Engine ─────────────────────────────────────────────────────
+//
+// Uses Web Audio API look-ahead scheduling: notes are placed on the audio clock
+// several milliseconds in the future so the JS timer jitter is inaudible.
+// The engine mirrors the transport tick loop but writes scheduled events to the
+// AudioContext timeline rather than to setTimeout.
+//
+// Bass styles (per beat within a step that spans N beats):
+//   'root'      – root note every beat, whole+half note lengths
+//   'root-5th'  – root on 1, 5th on 2, root on 3, 5th on 4  (two-feel if 4/4)
+//   'octave'    – root on 1, octave-up root on 3 (simple jump bass)
+//   'walking'   – root → 2nd → 3rd → 5th chromatic approach on beat 4
+//
+// Drum patterns (4/4 feel – indices are 0-based beat number within a bar):
+//   kick  on beats 0, 2
+//   snare on beats 1, 3
+//   hi-hat on every beat
+//
+// Semitone → Hz: 440 * 2^((n - 69) / 12)  where n = MIDI note number.
+// Bass sounds are placed 2 octaves below middle (MIDI notes ~28-43).
+
+const MIDI_BASS_ROOT_OFFSET = 36; // MIDI C2  – bass root zone base offset
+
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+// Root semitone (0=C … 11=B)  →  MIDI note for bass range
+function bassRootMidi(rootSemitone) {
+  // Place in MIDI octave 2 (C2=36), then shift up/down to stay 28-43
+  let midi = MIDI_BASS_ROOT_OFFSET + rootSemitone;
+  if (midi < 28) midi += 12;
+  if (midi > 43) midi -= 12;
+  return midi;
+}
+
+// Play a single synth bass note.
+// ctx        – AudioContext
+// midiNote   – MIDI note number
+// startTime  – AudioContext time in seconds
+// duration   – note length in seconds
+// gain       – 0-1
+function scheduleBassNote(ctx, midiNote, startTime, duration, gain = 0.55) {
+  const freq = midiToFreq(midiNote);
+  const osc = ctx.createOscillator();
+  const env = ctx.createGain();
+  const filt = ctx.createBiquadFilter();
+
+  osc.type = 'triangle';
+  osc.frequency.value = freq;
+
+  filt.type = 'lowpass';
+  filt.frequency.value = 900;
+  filt.Q.value = 1;
+
+  // ADSR envelope
+  const attack = 0.02;
+  const releaseStart = Math.max(startTime + attack, startTime + duration - 0.08);
+  env.gain.setValueAtTime(0, startTime);
+  env.gain.linearRampToValueAtTime(gain, startTime + attack);
+  env.gain.setValueAtTime(gain, releaseStart);
+  env.gain.exponentialRampToValueAtTime(0.001, releaseStart + 0.12);
+
+  osc.connect(filt);
+  filt.connect(env);
+  env.connect(ctx.destination);
+
+  osc.start(startTime);
+  osc.stop(releaseStart + 0.15);
+}
+
+// Schedule bass notes for one step at a given audio time.
+// stepStartTime – AudioContext time when step starts
+// beatDuration  – seconds per beat
+// rootSemitone  – chord root (0-11)
+// numBeats      – beats in this step
+// bassStyle     – from appState.backing.bassStyle
+function scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBeats, bassStyle, quality) {
+  const root = bassRootMidi(rootSemitone);
+  const fifth = root + 7;
+  const octave = root + 12;
+  // Chromatic approach note a semitone below 5th
+  const approach5 = fifth - 1;
+  // "2nd" used in walking: major 2nd above root
+  const second = root + 2;
+  // "3rd" used in walking: minor or major based on quality
+  const isMinorQuality = quality === 'minor' || quality === 'diminished';
+  const third = root + (isMinorQuality ? 3 : 4);
+
+  // Build per-beat note array
+  const notes = [];
+
+  switch (bassStyle) {
+    case 'root':
+      // Root on every beat; beats 1-2 get a longer note
+      for (let b = 0; b < numBeats; b++) {
+        notes.push({ beat: b, midi: root, dur: beatDuration * 0.9 });
+      }
+      break;
+
+    case 'root-5th':
+      // Alternates root / 5th each beat
+      for (let b = 0; b < numBeats; b++) {
+        notes.push({ beat: b, midi: b % 2 === 0 ? root : fifth, dur: beatDuration * 0.85 });
+      }
+      break;
+
+    case 'octave':
+      // Root on odd-numbered beats, octave on even-numbered (1-based = beats 2,4)
+      for (let b = 0; b < numBeats; b++) {
+        notes.push({ beat: b, midi: b % 2 === 0 ? root : octave, dur: beatDuration * 0.88 });
+      }
+      break;
+
+    case 'walking': {
+      // Beat 1: root  2: 2nd  3: 3rd  last: chromatic approach
+      // For steps > 4 beats, cycles through the same pattern
+      const walkPattern = [root, second, third, approach5];
+      for (let b = 0; b < numBeats; b++) {
+        const patternBeat = b % 4;
+        // On the final beat of the step, use approach note → target next root from outside
+        const isLastBeat = b === numBeats - 1;
+        const midi = isLastBeat ? approach5 : walkPattern[patternBeat];
+        notes.push({ beat: b, midi, dur: beatDuration * 0.82 });
+      }
+      break;
+    }
+
+    default:
+      notes.push({ beat: 0, midi: root, dur: beatDuration * 0.9 });
+  }
+
+  for (const n of notes) {
+    scheduleBassNote(ctx, n.midi, stepStartTime + n.beat * beatDuration, n.dur);
+  }
+}
+
+// Synthesize a kick drum (pitched sine sweep)
+function scheduleKick(ctx, startTime) {
+  const osc = ctx.createOscillator();
+  const env = ctx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(160, startTime);
+  osc.frequency.exponentialRampToValueAtTime(40, startTime + 0.12);
+
+  env.gain.setValueAtTime(0.9, startTime);
+  env.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+
+  osc.connect(env);
+  env.connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + 0.28);
+}
+
+// Synthesize a snare (noise burst + tone)
+function scheduleSnare(ctx, startTime) {
+  const bufSize = ctx.sampleRate * 0.1;
+  const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.value = 3500;
+  filt.Q.value = 0.5;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.45, startTime);
+  env.gain.exponentialRampToValueAtTime(0.001, startTime + 0.18);
+
+  noise.connect(filt);
+  filt.connect(env);
+  env.connect(ctx.destination);
+  noise.start(startTime);
+  noise.stop(startTime + 0.2);
+
+  // Thin tone body
+  const body = ctx.createOscillator();
+  const bodyEnv = ctx.createGain();
+  body.frequency.value = 185;
+  bodyEnv.gain.setValueAtTime(0.22, startTime);
+  bodyEnv.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
+  body.connect(bodyEnv);
+  bodyEnv.connect(ctx.destination);
+  body.start(startTime);
+  body.stop(startTime + 0.12);
+}
+
+// Synthesize a closed hi-hat
+function scheduleHihat(ctx, startTime) {
+  const bufSize = ctx.sampleRate * 0.04;
+  const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'highpass';
+  filt.frequency.value = 8000;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.18, startTime);
+  env.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+
+  noise.connect(filt);
+  filt.connect(env);
+  env.connect(ctx.destination);
+  noise.start(startTime);
+  noise.stop(startTime + 0.06);
+}
+
+// Schedule all drum events for numBeats starting at stepStartTime.
+function scheduleStepDrums(ctx, stepStartTime, beatDuration, numBeats) {
+  for (let b = 0; b < numBeats; b++) {
+    const t = stepStartTime + b * beatDuration;
+    const beatInBar = b % 4; // 0-based within a 4-beat bar
+
+    // Hi-hat on every beat
+    scheduleHihat(ctx, t);
+
+    // Kick on beats 0 and 2 (1 and 3 in musical terms)
+    if (beatInBar === 0 || beatInBar === 2) scheduleKick(ctx, t);
+
+    // Snare on beats 1 and 3 (2 and 4 in musical terms)
+    if (beatInBar === 1 || beatInBar === 3) scheduleSnare(ctx, t);
+  }
+}
+
+// Schedule backing for a single progression step.
+// Called once per step change inside advanceProgressionPlayback.
+// Returns immediately – all notes are deposited on the audio timeline.
+function scheduleBackingForStep(progression, stepIndex) {
+  const mix = appState.backing.mix;
+  if (!mix || mix === 'none') return;
+
+  const ctx = getAudioContext();
+  const beatDuration = 60 / Math.max(30, Number(progression.tempo) || 100);
+  const step = progression.steps[stepIndex];
+  if (!step) return;
+
+  const numBeats = Math.max(1, Number(step.beats) || 4);
+  const stepStartTime = ctx.currentTime + 0.03; // small scheduling lookahead
+
+  // Resolve chord root semitone for this step
+  const resolvedState = resolveProgressionStepState(progression, step);
+  const selection = getDegreeSelectionForState(resolvedState);
+  const rootSemitone = selection.targetRootSemitone;
+  const chordQuality = selection.targetQuality;
+
+  if (mix === 'bass' || mix === 'bass-drums') {
+    scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBeats, appState.backing.bassStyle, chordQuality);
+  }
+  if (mix === 'bass-drums') {
+    scheduleStepDrums(ctx, stepStartTime, beatDuration, numBeats);
+  }
+}
+
 // ── Transport helpers ─────────────────────────────────────────────────────────
 
 function clearTransportTimer() {
@@ -810,6 +1077,28 @@ function setupTransportControls() {
       saveProgressionsToStorage();
     }
   });
+
+  // Backing-track controls
+  const backingMixSelect = document.getElementById('backing-mix');
+  const bassStyleSelect = document.getElementById('backing-bass-style');
+
+  if (backingMixSelect) {
+    backingMixSelect.value = appState.backing.mix;
+    backingMixSelect.addEventListener('change', () => {
+      appState.backing.mix = backingMixSelect.value;
+      if (bassStyleSelect) {
+        bassStyleSelect.disabled = appState.backing.mix === 'none';
+      }
+    });
+  }
+
+  if (bassStyleSelect) {
+    bassStyleSelect.value = appState.backing.bassStyle;
+    bassStyleSelect.disabled = appState.backing.mix === 'none';
+    bassStyleSelect.addEventListener('change', () => {
+      appState.backing.bassStyle = bassStyleSelect.value;
+    });
+  }
 
   syncTransportControls();
 }
@@ -1038,6 +1327,7 @@ function advanceProgressionPlayback() {
     appState.transport.currentStepIndex = 0;
     appState.transport.currentBeatInStep = 0;
     playMetronomeClick(true);
+    scheduleBackingForStep(progression, 0);
     applyProgressionStepToMainView(progression, progression.steps[0]);
     renderProgressionPanel();
     renderProgressionTransportState();
@@ -1061,6 +1351,7 @@ function advanceProgressionPlayback() {
     }
 
     playMetronomeClick(true); // accent: first beat of new step
+    scheduleBackingForStep(progression, appState.transport.currentStepIndex);
     applyProgressionStepToMainView(progression, progression.steps[appState.transport.currentStepIndex]);
     renderProgressionPanel();
   } else {
