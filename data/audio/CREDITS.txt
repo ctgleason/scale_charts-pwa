@@ -6,9 +6,6 @@ Distribution source used for extraction: https://gleitz.github.io/midi-js-soundf
 License: CC BY 3.0
 Original soundfont attribution: FluidR3_GM.sf2 / SynthFont distribution referenced by midi-js-soundfonts
 
-Drum one-shots
-Files: kick1.mp3, snare_brush_1.mp3, click_1.mp3
-Collection: OLPC Berklee Sound Library mirror in Tonejs/audio
-Source path: https://github.com/Tonejs/audio/tree/master/berklee
-License: CC BY 3.0
-Collection attribution: Files from the OLPC Berklee Sound Library, http://wiki.laptop.org/go/Sound_samples
+Drums
+Current implementation: synthesized kick, snare, and hi-hat using Web Audio nodes
+No bundled drum one-shot samples are currently used by playback

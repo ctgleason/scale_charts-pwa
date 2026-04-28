@@ -691,15 +691,9 @@ const MIDI_BASS_ROOT_OFFSET = 36; // MIDI C2  – bass root zone base offset
 const BASS_SAMPLE_LOWEST_MIDI = 28; // E1
 const BASS_SAMPLE_HIGHEST_MIDI = 55; // G3
 const BASS_SAMPLE_PITCH_CLASSES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-const BACKING_DRUM_SAMPLE_PATHS = {
-  kick: './data/audio/drums/kick.mp3',
-  snare: './data/audio/drums/snare.mp3',
-  hihat: './data/audio/drums/hihat.mp3',
-};
 const backingSampleState = {
   loadPromise: null,
   bassBuffers: new Map(),
-  drumBuffers: new Map(),
 };
 
 function midiToBassSampleName(midi) {
@@ -737,17 +731,6 @@ async function ensureBackingSamplesLoaded() {
 
     bassEntries.forEach(([midi, buffer]) => {
       backingSampleState.bassBuffers.set(midi, buffer);
-    });
-
-    const drumEntries = await Promise.all(
-      Object.entries(BACKING_DRUM_SAMPLE_PATHS).map(async ([name, assetPath]) => {
-        const buffer = await fetchAndDecodeAudioBuffer(ctx, assetPath);
-        return [name, buffer];
-      })
-    );
-
-    drumEntries.forEach(([name, buffer]) => {
-      backingSampleState.drumBuffers.set(name, buffer);
     });
 
     return true;
@@ -821,16 +804,6 @@ function scheduleBassSample(ctx, midiNote, startTime, duration, gain = 0.55) {
     release: 0.1,
     filterFrequency: 1800,
   });
-  return true;
-}
-
-function scheduleDrumSample(ctx, name, startTime, gain = 1) {
-  const buffer = backingSampleState.drumBuffers.get(name);
-  if (!buffer) {
-    return false;
-  }
-
-  scheduleBufferSource(ctx, buffer, startTime, { gain });
   return true;
 }
 
@@ -956,12 +929,8 @@ function scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBea
   }
 }
 
-// Play a kick sample with synth fallback.
+// Keep drums synthesized for now; bundled one-shots were not clean one-hit samples.
 function scheduleKick(ctx, startTime) {
-  if (scheduleDrumSample(ctx, 'kick', startTime, 0.95)) {
-    return;
-  }
-
   scheduleSynthKick(ctx, startTime);
 }
 
@@ -970,24 +939,19 @@ function scheduleSynthKick(ctx, startTime) {
   const env = ctx.createGain();
 
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(160, startTime);
-  osc.frequency.exponentialRampToValueAtTime(40, startTime + 0.12);
+  osc.frequency.setValueAtTime(130, startTime);
+  osc.frequency.exponentialRampToValueAtTime(52, startTime + 0.09);
 
-  env.gain.setValueAtTime(0.9, startTime);
-  env.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+  env.gain.setValueAtTime(0.72, startTime);
+  env.gain.exponentialRampToValueAtTime(0.001, startTime + 0.16);
 
   osc.connect(env);
   env.connect(ctx.destination);
   osc.start(startTime);
-  osc.stop(startTime + 0.28);
+  osc.stop(startTime + 0.18);
 }
 
-// Play a snare sample with synth fallback.
 function scheduleSnare(ctx, startTime) {
-  if (scheduleDrumSample(ctx, 'snare', startTime, 0.7)) {
-    return;
-  }
-
   scheduleSynthSnare(ctx, startTime);
 }
 
@@ -1027,12 +991,9 @@ function scheduleSynthSnare(ctx, startTime) {
   body.stop(startTime + 0.12);
 }
 
-// Play a hi-hat sample with synth fallback.
+// The bundled hat sample reads more like a click than a closed hi-hat,
+// so keep hi-hats on the synthesized path for now.
 function scheduleHihat(ctx, startTime) {
-  if (scheduleDrumSample(ctx, 'hihat', startTime, 0.4)) {
-    return;
-  }
-
   scheduleSynthHihat(ctx, startTime);
 }
 

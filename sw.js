@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scale-charts-pwa-v40';
+const CACHE_NAME = 'scale-charts-pwa-v41';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -33,9 +33,6 @@ const APP_ASSETS = [
   './data/audio/bass/electric-bass-finger-F3.mp3',
   './data/audio/bass/electric-bass-finger-Gb3.mp3',
   './data/audio/bass/electric-bass-finger-G3.mp3',
-  './data/audio/drums/kick.mp3',
-  './data/audio/drums/snare.mp3',
-  './data/audio/drums/hihat.mp3',
   './data/common-progressions-pack.json',
   './vendor/svguitar.umd.js',
   './data/templates/registry.json',
