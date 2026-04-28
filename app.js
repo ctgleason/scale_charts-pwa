@@ -688,6 +688,151 @@ function playTestTone() {
 // Bass sounds are placed 2 octaves below middle (MIDI notes ~28-43).
 
 const MIDI_BASS_ROOT_OFFSET = 36; // MIDI C2  – bass root zone base offset
+const BASS_SAMPLE_LOWEST_MIDI = 28; // E1
+const BASS_SAMPLE_HIGHEST_MIDI = 55; // G3
+const BASS_SAMPLE_PITCH_CLASSES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const BACKING_DRUM_SAMPLE_PATHS = {
+  kick: './data/audio/drums/kick.mp3',
+  snare: './data/audio/drums/snare.mp3',
+  hihat: './data/audio/drums/hihat.mp3',
+};
+const backingSampleState = {
+  loadPromise: null,
+  bassBuffers: new Map(),
+  drumBuffers: new Map(),
+};
+
+function midiToBassSampleName(midi) {
+  const pitchClass = BASS_SAMPLE_PITCH_CLASSES[midi % 12];
+  const octave = Math.floor(midi / 12) - 1;
+  return `${pitchClass}${octave}`;
+}
+
+async function fetchAndDecodeAudioBuffer(ctx, assetPath) {
+  const response = await fetch(assetPath);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch audio sample: ${assetPath}`);
+  }
+
+  const bytes = await response.arrayBuffer();
+  return await ctx.decodeAudioData(bytes.slice(0));
+}
+
+async function ensureBackingSamplesLoaded() {
+  if (backingSampleState.loadPromise) {
+    return backingSampleState.loadPromise;
+  }
+
+  const ctx = getAudioContext();
+  backingSampleState.loadPromise = (async () => {
+    const bassEntries = [];
+    for (let midi = BASS_SAMPLE_LOWEST_MIDI; midi <= BASS_SAMPLE_HIGHEST_MIDI; midi += 1) {
+      const noteName = midiToBassSampleName(midi);
+      const buffer = await fetchAndDecodeAudioBuffer(
+        ctx,
+        `./data/audio/bass/electric-bass-finger-${noteName}.mp3`
+      );
+      bassEntries.push([midi, buffer]);
+    }
+
+    bassEntries.forEach(([midi, buffer]) => {
+      backingSampleState.bassBuffers.set(midi, buffer);
+    });
+
+    const drumEntries = await Promise.all(
+      Object.entries(BACKING_DRUM_SAMPLE_PATHS).map(async ([name, assetPath]) => {
+        const buffer = await fetchAndDecodeAudioBuffer(ctx, assetPath);
+        return [name, buffer];
+      })
+    );
+
+    drumEntries.forEach(([name, buffer]) => {
+      backingSampleState.drumBuffers.set(name, buffer);
+    });
+
+    return true;
+  })().catch((error) => {
+    backingSampleState.loadPromise = null;
+    console.error('Backing sample load failed; using synth fallback.', error);
+    return false;
+  });
+
+  return backingSampleState.loadPromise;
+}
+
+function scheduleBufferSource(ctx, buffer, startTime, options = {}) {
+  const {
+    gain = 1,
+    playbackRate = 1,
+    duration = null,
+    attack = 0.002,
+    release = 0.08,
+    filterFrequency = null,
+  } = options;
+  const source = ctx.createBufferSource();
+  const gainNode = ctx.createGain();
+  let tailNode = source;
+
+  source.buffer = buffer;
+  source.playbackRate.value = playbackRate;
+
+  if (filterFrequency) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterFrequency;
+    filter.Q.value = 1;
+    source.connect(filter);
+    tailNode = filter;
+  }
+
+  tailNode.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  if (duration) {
+    const releaseStart = Math.max(startTime + attack, startTime + duration - release);
+    gainNode.gain.setValueAtTime(0.0001, startTime);
+    gainNode.gain.linearRampToValueAtTime(gain, startTime + attack);
+    gainNode.gain.setValueAtTime(gain, releaseStart);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, releaseStart + release);
+  } else {
+    gainNode.gain.setValueAtTime(gain, startTime);
+  }
+
+  source.start(startTime);
+
+  const maxDuration = buffer.duration / playbackRate;
+  if (duration) {
+    source.stop(startTime + Math.min(maxDuration, duration + release + 0.02));
+  } else {
+    source.stop(startTime + maxDuration);
+  }
+}
+
+function scheduleBassSample(ctx, midiNote, startTime, duration, gain = 0.55) {
+  const buffer = backingSampleState.bassBuffers.get(midiNote);
+  if (!buffer) {
+    return false;
+  }
+
+  scheduleBufferSource(ctx, buffer, startTime, {
+    gain,
+    duration,
+    attack: 0.015,
+    release: 0.1,
+    filterFrequency: 1800,
+  });
+  return true;
+}
+
+function scheduleDrumSample(ctx, name, startTime, gain = 1) {
+  const buffer = backingSampleState.drumBuffers.get(name);
+  if (!buffer) {
+    return false;
+  }
+
+  scheduleBufferSource(ctx, buffer, startTime, { gain });
+  return true;
+}
 
 function midiToFreq(midi) {
   return 440 * Math.pow(2, (midi - 69) / 12);
@@ -702,13 +847,21 @@ function bassRootMidi(rootSemitone) {
   return midi;
 }
 
-// Play a single synth bass note.
+// Play a single bass note using local samples when available, with synth fallback.
 // ctx        – AudioContext
 // midiNote   – MIDI note number
 // startTime  – AudioContext time in seconds
 // duration   – note length in seconds
 // gain       – 0-1
 function scheduleBassNote(ctx, midiNote, startTime, duration, gain = 0.55) {
+  if (scheduleBassSample(ctx, midiNote, startTime, duration, gain)) {
+    return;
+  }
+
+  scheduleSynthBassNote(ctx, midiNote, startTime, duration, gain);
+}
+
+function scheduleSynthBassNote(ctx, midiNote, startTime, duration, gain = 0.55) {
   const freq = midiToFreq(midiNote);
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
@@ -803,8 +956,16 @@ function scheduleStepBass(ctx, stepStartTime, beatDuration, rootSemitone, numBea
   }
 }
 
-// Synthesize a kick drum (pitched sine sweep)
+// Play a kick sample with synth fallback.
 function scheduleKick(ctx, startTime) {
+  if (scheduleDrumSample(ctx, 'kick', startTime, 0.95)) {
+    return;
+  }
+
+  scheduleSynthKick(ctx, startTime);
+}
+
+function scheduleSynthKick(ctx, startTime) {
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
 
@@ -821,8 +982,16 @@ function scheduleKick(ctx, startTime) {
   osc.stop(startTime + 0.28);
 }
 
-// Synthesize a snare (noise burst + tone)
+// Play a snare sample with synth fallback.
 function scheduleSnare(ctx, startTime) {
+  if (scheduleDrumSample(ctx, 'snare', startTime, 0.7)) {
+    return;
+  }
+
+  scheduleSynthSnare(ctx, startTime);
+}
+
+function scheduleSynthSnare(ctx, startTime) {
   const bufSize = ctx.sampleRate * 0.1;
   const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -858,8 +1027,16 @@ function scheduleSnare(ctx, startTime) {
   body.stop(startTime + 0.12);
 }
 
-// Synthesize a closed hi-hat
+// Play a hi-hat sample with synth fallback.
 function scheduleHihat(ctx, startTime) {
+  if (scheduleDrumSample(ctx, 'hihat', startTime, 0.4)) {
+    return;
+  }
+
+  scheduleSynthHihat(ctx, startTime);
+}
+
+function scheduleSynthHihat(ctx, startTime) {
   const bufSize = ctx.sampleRate * 0.04;
   const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -1379,6 +1556,11 @@ async function startProgressionPlayback() {
     console.warn('Failed to initialize metronome audio:', error);
     updateTransportStatus('Audio blocked — tap Play again');
     return;
+  }
+
+  if (appState.backing.mix !== 'none') {
+    updateTransportStatus('Loading backing samples...');
+    await ensureBackingSamplesLoaded();
   }
 
   clearTransportTimer();
